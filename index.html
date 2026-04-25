@@ -125,7 +125,7 @@
     <thead>
         <tr>
             <th class="name-col">Account Name</th>
-            <th class="budget-col">Budget</th>
+            <th class="budget-col">Budget (# Hundreds)</th>
             <th class="color-col">Color</th>
             <th class="action-col">Action</th>
         </tr>
@@ -319,10 +319,11 @@
           combos.forEach((item, i) => {
             const isNearPerfect = parseFloat(item.remainder) <= 1.0;
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
+            const percentUsed = (parseFloat(item.total) / acct.budget * 100).toFixed(1);
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
                 <button class="copy-btn" onclick="copyCombo(this)">Copy</button>
-                <strong>#${i+1}:</strong> ${formatCombo(item.combo)}<br>
+                <strong>#${i+1}:</strong> ${formatCombo(item.combo)} [${item.total}, ${percentUsed}%]<br>
                 Total: <strong>${item.total}</strong> 
                 <span class="remainder">(remainder ${item.remainder})</span>
               </div>
