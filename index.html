@@ -392,7 +392,7 @@
           const percent = ((qty * cost) / budget * 100).toFixed(1);
           return `${qty} ${ticker} [${subtotal}, ${percent}%]`;
         })
-        .join(' + ');
+        .join('<br>');
     }
 
     function calculateAllocations() {
@@ -426,7 +426,8 @@
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
-                <strong>#${i+1}:</strong> ${formatCombo(item.combo, tickers, acct.budget)}<br>
+                <strong>#${i+1}:</strong><br>
+                ${formatCombo(item.combo, tickers, acct.budget)}<br>
                 Total: <strong>${item.total}</strong> 
                 <span class="remainder">(remainder ${item.remainder})</span>
               </div>
