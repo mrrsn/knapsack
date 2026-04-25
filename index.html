@@ -269,19 +269,48 @@
       ];
     }
 
+    function loadSavedSymbols() {
+      const saved = localStorage.getItem('portfolioSymbols');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      return [
+        { symbol: 'AAA', cost: 22, maxPercent: null },
+        { symbol: 'BBB', cost: 33, maxPercent: null },
+        { symbol: 'CCC', cost: 100, maxPercent: null }
+      ];
+    }
+
     function saveAccounts() {
       const rows = document.querySelectorAll('#accountsBody tr');
       const accountsToSave = [];
       rows.forEach(row => {
-        const nameInput = row.querySelector('input[type="text"]');
-        const colorInput = row.querySelector('input[type="color"]');
-        if (nameInput && colorInput) {
-          const name = nameInput.value.trim();
-          const color = colorInput.value;
-          if (name) accountsToSave.push({ name, color });
+        const inputs = row.querySelectorAll('input');
+        const name = inputs[0].value.trim();
+        const budget = parseFloat(inputs[1].value);
+        const color = inputs[2].value;
+        if (name && !isNaN(budget) && budget > 0) {
+          accountsToSave.push({ name, budget, color });
         }
       });
       localStorage.setItem('portfolioAccounts', JSON.stringify(accountsToSave));
+    }
+
+    function saveSymbols() {
+      const rows = document.querySelectorAll('#symbolsBody tr');
+      const symbolsToSave = [];
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const symbol = inputs[0].value.trim().toUpperCase();
+        const cost = parseFloat(inputs[1].value);
+        const rawMaxPercent = inputs[2].value.trim();
+        const maxPercentValue = rawMaxPercent === '' ? null : parseFloat(rawMaxPercent);
+        const maxPercent = maxPercentValue !== null && !isNaN(maxPercentValue) ? Math.max(0, Math.min(100, maxPercentValue)) : null;
+        if (symbol && !isNaN(cost) && cost > 0) {
+          symbolsToSave.push({ symbol, cost, maxPercent });
+        }
+      });
+      localStorage.setItem('portfolioSymbols', JSON.stringify(symbolsToSave));
     }
 
     function addAccountRow(name = '', budget = '', color = '#0066cc') {
@@ -300,10 +329,10 @@
       const tbody = document.getElementById('symbolsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${symbol}" placeholder="Symbol" oninput="this.value = this.value.toUpperCase()"></td>
-        <td><input type="number" step="0.01" value="${cost}" placeholder="Cost"></td>
-        <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}" placeholder="Max %"></td>
-        <td><button onclick="this.parentElement.parentElement.remove()">x</button></td>
+        <td><input type="text" value="${symbol}" placeholder="Symbol" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
+        <td><input type="number" step="0.01" value="${cost}" placeholder="Cost" oninput="saveSymbols()"></td>
+        <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}" placeholder="Max %" oninput="saveSymbols()"></td>
+        <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
     }
@@ -463,9 +492,10 @@
 
     window.onload = () => {
       const savedAccounts = loadSavedAccounts();
-      
+      const savedSymbols = loadSavedSymbols();
+
       savedAccounts.forEach(acct => {
-        addAccountRow(acct.name, '', acct.color);
+        addAccountRow(acct.name, acct.budget, acct.color);
       });
 
       if (savedAccounts.length === 0) {
@@ -474,13 +504,23 @@
         addAccountRow('Example C', '250', '#f39c12');
       }
 
-      addSymbolRow('AAA', 22);
-      addSymbolRow('BBB', 33);
-      addSymbolRow('CCC', 100);
+      savedSymbols.forEach(sym => {
+        addSymbolRow(sym.symbol, sym.cost, sym.maxPercent);
+      });
+
+      if (savedSymbols.length === 0) {
+        addSymbolRow('AAA', 22);
+        addSymbolRow('BBB', 33);
+        addSymbolRow('CCC', 100);
+      }
 
       const accountsTable = document.getElementById('accountsTable');
       accountsTable.addEventListener('change', saveAccounts);
       accountsTable.addEventListener('input', saveAccounts);
+
+      const symbolsTable = document.getElementById('symbolsTable');
+      symbolsTable.addEventListener('change', saveSymbols);
+      symbolsTable.addEventListener('input', saveSymbols);
     };
   </script>
 </body>
