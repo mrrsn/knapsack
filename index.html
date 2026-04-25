@@ -42,6 +42,13 @@
     border-radius: 4px; 
     box-sizing: border-box;      
     max-width: 100%;
+    -moz-appearance: textfield;
+  }
+  
+  input[type="number"]::-webkit-outer-spin-button,
+  input[type="number"]::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
   }
   
   input[type="color"] { 
@@ -96,10 +103,17 @@
     font-weight: bold; 
   }
 
-  .note { font-size: 0.9em; color: #555; margin-top: 5px; }
+  .clear-btn {
+    margin-left: 5px;
+    padding: 2px 6px;
+    font-size: 12px;
+    background: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .clear-btn:hover { background: #e0e0e0; }
 
-  
-  .acctname-col   { width: 30%; }
   .budget-col { width: 22%; }
   .color-col  { width: 12%; }
   .action-col { width: 15%; }
@@ -142,6 +156,12 @@
     button[style*="font-size:18px"] {
       font-size: 16px !important;
       padding: 12px 24px !important;
+    }
+    
+    .clear-btn {
+      margin-left: 3px;
+      padding: 1px 4px;
+      font-size: 10px;
     }
     
     .account-section {
@@ -203,6 +223,14 @@
     button[class*="add-row"] {
       width: 100%;
       margin: 10px 0;
+    }
+    
+    .clear-btn {
+      margin-left: 2px;
+      padding: 1px 3px;
+      font-size: 9px;
+      display: inline-block;
+      width: auto;
     }
     
     .account-section {
@@ -318,7 +346,7 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${name}" placeholder="Account Name" onblur="saveAccounts()"></td>
-        <td><input type="number" step="0.01" value="${budget}" placeholder="Budget"></td>
+        <td><input type="number" step="0.01" value="${budget}" placeholder="Budget"><button onclick="this.previousElementSibling.value=''; saveAccounts()" class="clear-btn">x</button></td>
         <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">x</button></td>
       `;
@@ -330,8 +358,8 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${symbol}" placeholder="Symbol" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
-        <td><input type="number" step="0.01" value="${cost}" placeholder="Cost" oninput="saveSymbols()"></td>
-        <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}" placeholder="Max %" oninput="saveSymbols()"></td>
+        <td><input type="number" step="0.01" value="${cost}" placeholder="Cost"><button onclick="this.previousElementSibling.value=''; saveSymbols()" class="clear-btn">x</button></td>
+        <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}" placeholder="Max %"><button onclick="this.previousElementSibling.value=''; saveSymbols()" class="clear-btn">x</button></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
