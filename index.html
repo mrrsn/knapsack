@@ -350,6 +350,9 @@
         maxPercent,
         maxUnits: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
       }));
+      const targetPercent = 100 / tickerList.length;
+      const balanceWindow = targetPercent * 0.25;
+      const costByTicker = Object.fromEntries(tickerList.map(t => [t.name, t.cost]));
       const results = [];
 
       function recurse(index, current, totalCost, usedCount) {
@@ -358,11 +361,18 @@
           if (usedCount >= 1 && totalCost > 0) {   // Changed from >=2 to >=1
             const rem = budget - totalCost;
             if (rem >= -0.01) {
+              const balancedCount = Object.entries(current).reduce((count, [name, qty]) => {
+                if (qty <= 0) return count;
+                const percent = (qty * costByTicker[name] / budget) * 100;
+                return Math.abs(percent - targetPercent) <= balanceWindow ? count + 1 : count;
+              }, 0);
+
               results.push({
                 combo: {...current},
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
-                tickerCount: usedCount
+                tickerCount: usedCount,
+                balancedCount
               });
             }
           }
@@ -384,11 +394,12 @@
 
       recurse(0, {}, 0, 0);
 
-      // Sort: best remainder first, then prefer more tickers when remainders are close
+      // Sort: best remainder first, then prefer more balanced equal-weight allocations, then more tickers
       results.sort((a, b) => {
         const remA = Math.abs(parseFloat(a.remainder));
         const remB = Math.abs(parseFloat(b.remainder));
         if (Math.abs(remA - remB) > 0.1) return remA - remB;
+        if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
         return b.tickerCount - a.tickerCount;   // Still prefer diverse when quality is similar
       });
 
