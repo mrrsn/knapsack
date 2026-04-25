@@ -103,7 +103,7 @@
   .budget-col { width: 22%; }
   .color-col  { width: 12%; }
   .action-col { width: 15%; }
-  .itemname-col { width: 35%; }
+  .symbolname-col { width: 35%; }
   .cost-col   { width: 25%; }
   .maxpct-col { width: 15%; }
 
@@ -237,18 +237,18 @@
   </table>
   <button class="add-row" onclick="addAccountRow()">+ Add Account</button>
 
-  <table id="itemsTable">
+  <table id="symbolsTable">
     <thead>
         <tr>
-            <th class="itemname-col">Name</th>
+            <th class="symbolname-col">Symbol</th>
             <th class="cost-col">Cost</th>
             <th class="maxpct-col">Max %</th>
             <th class="action-col">Action</th>
         </tr>
     </thead>
-    <tbody id="itemsBody"></tbody>
+    <tbody id="symbolsBody"></tbody>
   </table>
-  <button class="add-row" onclick="addItemRow()">+ Add Item</button>
+  <button class="add-row" onclick="addSymbolRow()">+ Add Symbol</button>
 
   <div style="text-align:center; margin: 30px 0;">
     <button onclick="calculateAllocations()" style="font-size:18px; padding:14px 32px;">Calculate Top 3 Combinations</button>
@@ -296,11 +296,11 @@
       tbody.appendChild(row);
     }
 
-    function addItemRow(item = '', cost = '', maxPercent = '') {
-      const tbody = document.getElementById('itemsBody');
+    function addSymbolRow(symbol = '', cost = '', maxPercent = '') {
+      const tbody = document.getElementById('symbolsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${item}" placeholder="Item" oninput="this.value = this.value.toUpperCase()"></td>
+        <td><input type="text" value="${symbol}" placeholder="Symbol" oninput="this.value = this.value.toUpperCase()"></td>
         <td><input type="number" step="0.01" value="${cost}" placeholder="Cost"></td>
         <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}" placeholder="Max %"></td>
         <td><button onclick="this.parentElement.parentElement.remove()">x</button></td>
@@ -323,44 +323,44 @@
       return accounts;
     }
 
-    function getItems() {
-      const rows = document.querySelectorAll('#itemsBody tr');
-      const items = {};
+    function getSymbols() {
+      const rows = document.querySelectorAll('#symbolsBody tr');
+      const symbols = {};
       rows.forEach(row => {
         const inputs = row.querySelectorAll('input');
-        const item = inputs[0].value.trim().toUpperCase();
+        const symbol = inputs[0].value.trim().toUpperCase();
         const cost = parseFloat(inputs[1].value);
         const rawMaxPercent = inputs[2].value.trim();
         const maxPercentValue = rawMaxPercent === '' ? null : parseFloat(rawMaxPercent);
         const maxPercent = maxPercentValue !== null && !isNaN(maxPercentValue) ? Math.max(0, Math.min(100, maxPercentValue)) : null;
-        if (item && !isNaN(cost) && cost > 0) {
-          items[item] = { cost, maxPercent };
+        if (symbol && !isNaN(cost) && cost > 0) {
+          symbols[symbol] = { cost, maxPercent };
         }
       });
-      return items;
+      return symbols;
     }
 
-    function findTopCombinations(items, budget, maxResults = 3) {
-      const itemList = Object.entries(items).map(([name, { cost, maxPercent }]) => ({
+    function findTopCombinations(symbols, budget, maxResults = 3) {
+      const symbolList = Object.entries(symbols).map(([name, { cost, maxPercent }]) => ({
         name,
         cost,
         maxPercent,
-        maxItems: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
+        maxSymbols: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
       }));
-      const targetPercent = 100 / itemList.length;
+      const targetPercent = 100 / symbolList.length;
       const balanceWindow = targetPercent * 0.10;
-      const costByItem = Object.fromEntries(itemList.map(t => [t.name, t.cost]));
+      const costBySymbol = Object.fromEntries(symbolList.map(t => [t.name, t.cost]));
       const results = [];
 
       function recurse(index, current, totalCost, usedCount) {
         if (totalCost > budget + 0.01) return;
-        if (index === itemList.length) {
+        if (index === symbolList.length) {
           if (usedCount >= 1 && totalCost > 0) {
             const rem = budget - totalCost;
             if (rem >= -0.01) {
               const balancedCount = Object.entries(current).reduce((count, [name, qty]) => {
                 if (qty <= 0) return count;
-                const percent = (qty * costByItem[name] / budget) * 100;
+                const percent = (qty * costBySymbol[name] / budget) * 100;
                 return Math.abs(percent - targetPercent) <= balanceWindow ? count + 1 : count;
               }, 0);
 
@@ -368,7 +368,7 @@
                 combo: {...current},
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
-                itemCount: usedCount,
+                symbolCount: usedCount,
                 balancedCount
               });
             }
@@ -376,14 +376,14 @@
           return;
         }
 
-        const t = itemList[index];
+        const t = symbolList[index];
         let qty = 0;
         let costSoFar = 0;
         while (true) {
           recurse(index + 1, {...current, [t.name]: qty}, totalCost + costSoFar, usedCount + (qty > 0 ? 1 : 0));
           qty++;
           costSoFar += t.cost;
-          if (t.maxItems !== Infinity && qty > t.maxItems) break;
+          if (t.maxSymbols !== Infinity && qty > t.maxSymbols) break;
           if (totalCost + costSoFar > budget + 20) break;
           if (qty > 50) break;
         }
@@ -396,40 +396,40 @@
         const remB = Math.abs(parseFloat(b.remainder));
         if (Math.abs(remA - remB) > 0.1) return remA - remB;
         if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
-        return b.itemCount - a.itemCount;
+        return b.symbolCount - a.symbolCount;
       });
 
       return results.slice(0, maxResults);
     }
 
-    function formatCombo(comboObj, items, budget) {
+    function formatCombo(comboObj, symbols, budget) {
       return Object.entries(comboObj)
         .filter(([_, qty]) => qty > 0)
-        .map(([item, qty]) => {
-          const cost = items[item].cost;
+        .map(([symbol, qty]) => {
+          const cost = symbols[symbol].cost;
           const subtotal = (qty * cost).toFixed(1);
           const percent = ((qty * cost) / budget * 100).toFixed(1);
-          return `${qty} ${item} [${subtotal}, ${percent}%]`;
+          return `${qty} ${symbol} [${subtotal}, ${percent}%]`;
         })
         .join('<br>');
     }
 
     function calculateAllocations() {
       const accounts = getAccounts();
-      const items = getItems();
+      const symbols = getSymbols();
       const outputDiv = document.getElementById('output');
       outputDiv.innerHTML = `
         <h3>How Combinations are Found and Ranked</h3>
-        <p>Combinations are generated by recursively trying different quantities of each item within budget constraints and max percentages. They are ranked first by smallest remainder (closest to budget), then by how many items are balanced within 10% of equal weight, and finally by diversity (more items preferred).</p>
+        <p>Combinations are generated by recursively trying different quantities of each symbol within budget constraints and max percentages. They are ranked first by smallest remainder (closest to budget), then by how many symbols are balanced within 10% of equal weight, and finally by diversity (more symbols preferred).</p>
       `;
 
-      if (accounts.length === 0 || Object.keys(items).length === 0) {
-        outputDiv.innerHTML = '<p style="color:red; text-align:center;">Please add at least one account with a budget and one item.</p>';
+      if (accounts.length === 0 || Object.keys(symbols).length === 0) {
+        outputDiv.innerHTML = '<p style="color:red; text-align:center;">Please add at least one account with a budget and one symbol.</p>';
         return;
       }
 
       accounts.forEach((acct) => {
-        const combos = findTopCombinations(items, acct.budget);
+        const combos = findTopCombinations(symbols, acct.budget);
 
         let html = `
           <div class="account-section" style="border-left: 8px solid ${acct.color};">
@@ -442,14 +442,14 @@
         if (combos.length === 0) {
           html += `<p>No valid combinations found.</p>`;
         } else {
-          combos.forEach((item) => {
-            const isNearPerfect = parseFloat(item.remainder) <= 1.0;
+          combos.forEach((combo) => {
+            const isNearPerfect = parseFloat(combo.remainder) <= 1.0;
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
-                ${formatCombo(item.combo, items, acct.budget)}<br>
-                Total: <strong>${item.total}</strong> 
-                <span class="remainder">(remainder ${item.remainder})</span>
+                ${formatCombo(combo.combo, symbols, acct.budget)}<br>
+                Total: <strong>${combo.total}</strong> 
+                <span class="remainder">(remainder ${combo.remainder})</span>
               </div>
             `;
           });
@@ -474,9 +474,9 @@
         addAccountRow('Example C', '250', '#f39c12');
       }
 
-      addItemRow('AAA', 22);
-      addItemRow('BBB', 33);
-      addItemRow('CCC', 100);
+      addSymbolRow('AAA', 22);
+      addSymbolRow('BBB', 33);
+      addSymbolRow('CCC', 100);
 
       const accountsTable = document.getElementById('accountsTable');
       accountsTable.addEventListener('change', saveAccounts);
