@@ -384,27 +384,13 @@
     }
 
     function formatCombo(comboObj, tickers, budget) {
-      const entries = Object.entries(comboObj)
+      return Object.entries(comboObj)
         .filter(([_, qty]) => qty > 0)
         .map(([ticker, qty]) => {
           const cost = tickers[ticker];
           const subtotal = (qty * cost).toFixed(1);
           const percent = ((qty * cost) / budget * 100).toFixed(1);
-          return { ticker, qty, subtotal, percent };
-        });
-      
-      // Find max lengths for alignment
-      const maxSubtotalLen = Math.max(...entries.map(e => e.subtotal.length));
-      const maxPercentLen = Math.max(...entries.map(e => e.percent.length));
-      const maxPrefixLen = Math.max(...entries.map(({ ticker, qty }) => `${qty} ${ticker} `.length));
-      
-      return entries
-        .map(({ ticker, qty, subtotal, percent }) => {
-          const paddedSubtotal = subtotal.padStart(maxSubtotalLen);
-          const paddedPercent = percent.padStart(maxPercentLen);
-          const prefix = `${qty} ${ticker} `;
-          const paddedPrefix = prefix.padStart(maxPrefixLen);
-          return `${paddedPrefix}[${paddedSubtotal}, ${paddedPercent}%]`;
+          return `${qty} ${ticker} [${subtotal}, ${percent}%]`;
         })
         .join('<br>');
     }
