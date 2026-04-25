@@ -34,21 +34,32 @@
     color: white; 
   }
   
-  input[type="text"], 
-  input[type="number"] { 
-    padding: 8px; 
-    border: 1px solid #ccc; 
-    border-radius: 4px; 
-    box-sizing: border-box;      
+  input[type="text"],
+  input[type="number"] {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    width: 100%;
     max-width: 100%;
   }
-  
-  input[type="text"] { width: 30%; }
-  input[type="number"] { 
-    width: 25%; 
+
+  input[type="text"] {
+    width: 100%;
+  }
+
+  input[type="number"] {
     -moz-appearance: textfield;
   }
-  
+
+  input[type="color"] {
+    width: 48px;
+    height: 38px;
+    padding: 3px;
+    cursor: pointer;
+    border: 1px solid #ccc;
+  }
+
   input[type="number"]::-webkit-outer-spin-button,
   input[type="number"]::-webkit-inner-spin-button {
     -webkit-appearance: none;
@@ -110,12 +121,10 @@
     font-weight: bold; 
   }
 
-  .budget-col { width: 22%; }
-  .color-col  { width: 12%; }
-  .action-col { width: 15%; }
-  .symbolname-col { width: 40%; }
-  .cost-col   { width: 35%; }
-
+  .budget-col { width: 28%; }
+  .cost-col   { width: 30%; }
+  .symbolname-col { width: 45%; }
+  .acctname-col   { width: 38%; }
   
   @media (max-width: 768px) {
     body {
@@ -351,8 +360,10 @@
       const tbody = document.getElementById('accountsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${name}" onblur="saveAccounts()"></td>
-        <td class="budget-cell"><input type="number" value="${budget}"></td>
+        <td><input type="text" value="${name}" onblur="saveAccounts()" placeholder="Account name"></td>
+        <td class="budget-cell">
+          <input type="number" value="${budget}" step="0.01" min="0" placeholder="0" onblur="saveAccounts()">
+        </td>
         <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">x</button></td>
       `;
@@ -363,8 +374,10 @@
       const tbody = document.getElementById('symbolsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${symbol}" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
-        <td class="cost-cell"><input type="number" value="${cost}"></td>
+        <td><input type="text" value="${symbol}" oninput="this.value = this.value.toUpperCase(); saveSymbols()" placeholder="SYMBOL"></td>
+        <td class="cost-cell">
+          <input type="number" value="${cost}" step="0.01" min="0" placeholder="0" onblur="saveSymbols()">
+        </td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
