@@ -225,7 +225,7 @@
     <thead>
         <tr>
             <th class="name-col">Account Name</th>
-            <th class="budget-col">Budget (# Hundreds)</th>
+            <th class="budget-col">Budget (In Hundreds)</th>
             <th class="color-col">Color</th>
             <th class="action-col">Action</th>
         </tr>
@@ -396,12 +396,15 @@
       // Find max lengths for alignment
       const maxSubtotalLen = Math.max(...entries.map(e => e.subtotal.length));
       const maxPercentLen = Math.max(...entries.map(e => e.percent.length));
+      const maxPrefixLen = Math.max(...entries.map(({ ticker, qty }) => `${qty} ${ticker} `.length));
       
       return entries
         .map(({ ticker, qty, subtotal, percent }) => {
           const paddedSubtotal = subtotal.padStart(maxSubtotalLen);
           const paddedPercent = percent.padStart(maxPercentLen);
-          return `${qty} ${ticker} [${paddedSubtotal}, ${paddedPercent}%]`;
+          const prefix = `${qty} ${ticker} `;
+          const paddedPrefix = prefix.padStart(maxPrefixLen);
+          return `${paddedPrefix}[${paddedSubtotal}, ${paddedPercent}%]`;
         })
         .join('<br>');
     }
@@ -417,7 +420,7 @@
         return;
       }
 
-      accounts.forEach(acct => {
+      accounts.forEach((acct, accountIndex) => {
         const combos = findTopCombinations(tickers, acct.budget);
 
         let html = `
@@ -426,7 +429,6 @@
               <input type="color" value="${acct.color}" style="width:40px;height:40px;">
               <h2 style="margin:0;">${acct.name} — Budget: ${acct.budget}</h2>
             </div>
-            <div class="note">Top 3 combinations</div>
         `;
 
         if (combos.length === 0) {
@@ -437,9 +439,8 @@
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
-                <strong>#${i+1}</strong><br>
                 ${formatCombo(item.combo, tickers, acct.budget)}<br>
-                &nbsp;Total: <strong>${item.total}</strong> 
+                Total: <strong>${item.total}</strong> 
                 <span class="remainder">(remainder ${item.remainder})</span>
               </div>
             `;
