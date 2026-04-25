@@ -351,7 +351,7 @@
         maxUnits: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
       }));
       const targetPercent = 100 / tickerList.length;
-      const balanceWindow = targetPercent * 0.25;
+      const balanceWindow = targetPercent * 0.10;
       const costByTicker = Object.fromEntries(tickerList.map(t => [t.name, t.cost]));
       const results = [];
 
