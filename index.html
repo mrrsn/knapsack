@@ -155,7 +155,7 @@
   <div id="output" class="output"></div>
 
   <script>
-    // Load saved accounts (name + color only)
+    // Load saved accounts
     function loadSavedAccounts() {
       const saved = localStorage.getItem('portfolioAccounts');
       if (saved) {
@@ -168,7 +168,7 @@
       ];
     }
 
-    // Save accounts (name + color only)
+    // Save accounts
     function saveAccounts() {
       const rows = document.querySelectorAll('#accountsBody tr');
       const accountsToSave = [];
@@ -315,7 +315,7 @@
               <input type="color" value="${acct.color}" style="width:40px;height:40px;">
               <h2 style="margin:0;">${acct.name} — Budget: ${acct.budget}</h2>
             </div>
-            <div class="note">Top 3 combinations (single ticker allowed for small budgets)</div>
+            <div class="note">Top 3 combinations</div>
         `;
 
         if (combos.length === 0) {
@@ -363,9 +363,6 @@
       }
 
       // Example tickers
-      addTickerRow('FIG', 15.5);
-      addTickerRow('KTOS', 56);
-      addTickerRow('BTU', 25.5);
       addTickerRow('MSTR', 160);
 
       // Auto-save accounts when changed
