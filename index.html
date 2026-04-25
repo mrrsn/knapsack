@@ -122,9 +122,8 @@
   .budget-col { width: 22%; }
   .color-col  { width: 12%; }
   .action-col { width: 15%; }
-  .symbolname-col { width: 35%; }
-  .cost-col   { width: 25%; }
-  .maxpct-col { width: 15%; }
+  .symbolname-col { width: 40%; }
+  .cost-col   { width: 35%; }
 
   
   @media (max-width: 768px) {
@@ -211,17 +210,19 @@
       padding: 6px 4px;
     }
     
-    input[type="text"] {
-      padding: 5px;
-      font-size: 16px;
-      width: 50%;
-    }
-    
+    input[type="text"],
     input[type="number"] {
       padding: 5px;
       font-size: 16px;
-      width: 70%;
+      width: 100%;
     }
+    
+    .acctname-col { width: 55%; }
+    .budget-col { width: 20%; }
+    .color-col { width: 20%; }
+    .action-col { width: 5%; }
+    .symbolname-col { width: 70%; }
+    .cost-col { width: 25%; }
     
     button {
       padding: 6px 10px;
@@ -282,7 +283,6 @@
         <tr>
             <th class="symbolname-col">Symbol</th>
             <th class="cost-col">Cost</th>
-            <th class="maxpct-col">Max %</th>
             <th class="action-col">Action</th>
         </tr>
     </thead>
@@ -315,9 +315,9 @@
         return JSON.parse(saved);
       }
       return [
-        { symbol: 'AAA', cost: 22, maxPercent: null },
-        { symbol: 'BBB', cost: 33, maxPercent: null },
-        { symbol: 'CCC', cost: 100, maxPercent: null }
+        { symbol: 'AAA', cost: 22 },
+        { symbol: 'BBB', cost: 33 },
+        { symbol: 'CCC', cost: 100 }
       ];
     }
 
@@ -343,11 +343,8 @@
         const inputs = row.querySelectorAll('input');
         const symbol = inputs[0].value.trim().toUpperCase();
         const cost = parseFloat(inputs[1].value);
-        const rawMaxPercent = inputs[2].value.trim();
-        const maxPercentValue = rawMaxPercent === '' ? null : parseFloat(rawMaxPercent);
-        const maxPercent = maxPercentValue !== null && !isNaN(maxPercentValue) ? Math.max(0, Math.min(100, maxPercentValue)) : null;
         if (symbol && !isNaN(cost) && cost > 0) {
-          symbolsToSave.push({ symbol, cost, maxPercent });
+          symbolsToSave.push({ symbol, cost });
         }
       });
       localStorage.setItem('portfolioSymbols', JSON.stringify(symbolsToSave));
@@ -365,13 +362,12 @@
       tbody.appendChild(row);
     }
 
-    function addSymbolRow(symbol = '', cost = '', maxPercent = '') {
+    function addSymbolRow(symbol = '', cost = '') {
       const tbody = document.getElementById('symbolsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${symbol}" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
         <td><input type="number" step="0.01" value="${cost}"><button onclick="this.previousElementSibling.value=''; saveSymbols()" class="clear-btn">x</button></td>
-        <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}"><button onclick="this.previousElementSibling.value=''; saveSymbols()" class="clear-btn">x</button></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
@@ -399,22 +395,18 @@
         const inputs = row.querySelectorAll('input');
         const symbol = inputs[0].value.trim().toUpperCase();
         const cost = parseFloat(inputs[1].value);
-        const rawMaxPercent = inputs[2].value.trim();
-        const maxPercentValue = rawMaxPercent === '' ? null : parseFloat(rawMaxPercent);
-        const maxPercent = maxPercentValue !== null && !isNaN(maxPercentValue) ? Math.max(0, Math.min(100, maxPercentValue)) : null;
         if (symbol && !isNaN(cost) && cost > 0) {
-          symbols[symbol] = { cost, maxPercent };
+          symbols[symbol] = { cost };
         }
       });
       return symbols;
     }
 
     function findTopCombinations(symbols, budget, maxResults = 3) {
-      const symbolList = Object.entries(symbols).map(([name, { cost, maxPercent }]) => ({
+      const symbolList = Object.entries(symbols).map(([name, { cost }]) => ({
         name,
         cost,
-        maxPercent,
-        maxSymbols: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
+        maxSymbols: Infinity
       }));
       const targetPercent = 100 / symbolList.length;
       const balanceWindow = targetPercent * 0.10;
@@ -452,8 +444,6 @@
           recurse(index + 1, {...current, [t.name]: qty}, totalCost + costSoFar, usedCount + (qty > 0 ? 1 : 0));
           qty++;
           costSoFar += t.cost;
-          if (t.maxSymbols !== Infinity && qty > t.maxSymbols) break;
-          if (totalCost + costSoFar > budget + 20) break;
           if (qty > 50) break;
         }
       }
@@ -545,7 +535,7 @@
       }
 
       savedSymbols.forEach(sym => {
-        addSymbolRow(sym.symbol, sym.cost, sym.maxPercent);
+        addSymbolRow(sym.symbol, sym.cost);
       });
 
       if (savedSymbols.length === 0) {
