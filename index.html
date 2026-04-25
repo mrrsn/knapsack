@@ -114,6 +114,125 @@
   .action-col { width: 12%; }
   .ticker-col { width: 45%; }
   .cost-col   { width: 35%; }
+
+  /* Mobile Responsive */
+  @media (max-width: 768px) {
+    body {
+      margin: 15px auto;
+      padding: 12px;
+    }
+    
+    h1 { font-size: 1.5em; }
+    h2 { font-size: 1.2em; }
+    
+    table {
+      font-size: 0.9em;
+    }
+    
+    th, td {
+      padding: 8px 6px;
+    }
+    
+    input[type="text"],
+    input[type="number"] {
+      padding: 6px;
+      font-size: 16px;
+    }
+    
+    button {
+      padding: 6px 12px;
+      margin: 4px;
+      font-size: 0.9em;
+    }
+    
+    button[style*="font-size:18px"] {
+      font-size: 16px !important;
+      padding: 12px 24px !important;
+    }
+    
+    .account-section {
+      padding: 15px;
+      margin-bottom: 20px;
+    }
+    
+    .account-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+    
+    .combo {
+      padding: 12px;
+      margin: 8px 0;
+      font-size: 0.85em;
+    }
+    
+    .copy-btn {
+      float: none;
+      display: block;
+      margin-top: 8px;
+      width: 100%;
+      padding: 6px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    body {
+      max-width: 100%;
+      margin: 10px auto;
+      padding: 10px;
+    }
+    
+    h1 { font-size: 1.3em; margin: 10px 0; }
+    h2 { font-size: 1.1em; margin: 15px 0 10px 0; }
+    
+    table {
+      font-size: 0.8em;
+      margin-bottom: 15px;
+    }
+    
+    th, td {
+      padding: 6px 4px;
+    }
+    
+    input[type="text"],
+    input[type="number"] {
+      padding: 5px;
+      font-size: 16px;
+    }
+    
+    button {
+      padding: 6px 10px;
+      margin: 3px;
+      font-size: 0.85em;
+      width: calc(100% - 6px);
+      display: block;
+      margin-bottom: 6px;
+    }
+    
+    button[class*="add-row"] {
+      width: 100%;
+      margin: 10px 0;
+    }
+    
+    .account-section {
+      padding: 12px;
+      margin-bottom: 15px;
+    }
+    
+    .combo {
+      padding: 10px;
+      margin: 6px 0;
+      font-size: 0.8em;
+      word-break: break-word;
+    }
+    
+    .copy-btn {
+      width: 100%;
+      padding: 6px;
+      margin-top: 6px;
+    }
+  }
 </style>
 </head>
 <body>
