@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Flexible Portfolio Knapsack Allocator</title>
+  <title>Knapsack Solver</title>
 <style>
   body { 
     font-family: system-ui, sans-serif; 
@@ -20,7 +20,7 @@
     margin-bottom: 30px; 
     background: white; 
     box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-    table-layout: fixed;          /* ← This is the key fix */
+    table-layout: fixed;          
   }
   th, td { 
     padding: 10px 8px; 
@@ -40,7 +40,7 @@
     padding: 8px; 
     border: 1px solid #ccc; 
     border-radius: 4px; 
-    box-sizing: border-box;      /* ← Important */
+    box-sizing: border-box;      
     max-width: 100%;
   }
   
@@ -98,16 +98,16 @@
 
   .note { font-size: 0.9em; color: #555; margin-top: 5px; }
 
-  /* Column width control */
-  .name-col   { width: 30%; }
+  
+  .acctname-col   { width: 30%; }
   .budget-col { width: 22%; }
   .color-col  { width: 12%; }
   .action-col { width: 15%; }
-  .ticker-col { width: 35%; }
+  .itemname-col { width: 35%; }
   .cost-col   { width: 25%; }
   .maxpct-col { width: 15%; }
 
-  /* Mobile Responsive */
+  
   @media (max-width: 768px) {
     body {
       margin: 15px auto;
@@ -224,12 +224,10 @@
 <body>
   <h1>Knapsack Solver</h1>
 
-  <!-- Accounts Table -->
-  <h2>Accounts & Budgets (Names & Colors Saved)</h2>
   <table id="accountsTable">
     <thead>
         <tr>
-            <th class="name-col">Account Name</th>
+            <th class="acctname-col">Account</th>
             <th class="budget-col">Budget (In Hundreds)</th>
             <th class="color-col">Color</th>
             <th class="action-col">Action</th>
@@ -239,20 +237,18 @@
   </table>
   <button class="add-row" onclick="addAccountRow()">+ Add Account</button>
 
-  <!-- Tickers Table -->
-  <h2>Tickers, Costs & Max %</h2>
-  <table id="tickersTable">
+  <table id="itemsTable">
     <thead>
         <tr>
-            <th class="ticker-col">Ticker</th>
-            <th class="cost-col">Cost per Unit</th>
+            <th class="itemname-col">Name</th>
+            <th class="cost-col">Cost</th>
             <th class="maxpct-col">Max %</th>
             <th class="action-col">Action</th>
         </tr>
     </thead>
-    <tbody id="tickersBody"></tbody>
+    <tbody id="itemsBody"></tbody>
   </table>
-  <button class="add-row" onclick="addTickerRow()">+ Add Ticker</button>
+  <button class="add-row" onclick="addItemRow()">+ Add Item</button>
 
   <div style="text-align:center; margin: 30px 0;">
     <button onclick="calculateAllocations()" style="font-size:18px; padding:14px 32px;">Calculate Top 3 Combinations</button>
@@ -261,20 +257,18 @@
   <div id="output" class="output"></div>
 
   <script>
-    // Load saved accounts
     function loadSavedAccounts() {
       const saved = localStorage.getItem('portfolioAccounts');
       if (saved) {
         return JSON.parse(saved);
       }
       return [
-        { name: 'Roth', color: '#4a90e2' },
-        { name: 'Trad', color: '#50c878' },
-        { name: 'Ind.', color: '#f39c12' }
+        { name: 'Example A', budget: 50, color: '#4a90e2' },
+        { name: 'Example B', budget: 100, color: '#50c878' },
+        { name: 'Example C', budget: 250, color: '#f39c12' }
       ];
     }
 
-    // Save accounts
     function saveAccounts() {
       const rows = document.querySelectorAll('#accountsBody tr');
       const accountsToSave = [];
@@ -302,11 +296,11 @@
       tbody.appendChild(row);
     }
 
-    function addTickerRow(ticker = '', cost = '', maxPercent = '') {
-      const tbody = document.getElementById('tickersBody');
+    function addItemRow(item = '', cost = '', maxPercent = '') {
+      const tbody = document.getElementById('itemsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${ticker}" placeholder="Ticker" oninput="this.value = this.value.toUpperCase()"></td>
+        <td><input type="text" value="${item}" placeholder="Item" oninput="this.value = this.value.toUpperCase()"></td>
         <td><input type="number" step="0.01" value="${cost}" placeholder="Cost"></td>
         <td><input type="number" step="0.1" min="0" max="100" value="${maxPercent}" placeholder="Max %"></td>
         <td><button onclick="this.parentElement.parentElement.remove()">x</button></td>
@@ -329,45 +323,44 @@
       return accounts;
     }
 
-    function getTickers() {
-      const rows = document.querySelectorAll('#tickersBody tr');
-      const tickers = {};
+    function getItems() {
+      const rows = document.querySelectorAll('#itemsBody tr');
+      const items = {};
       rows.forEach(row => {
         const inputs = row.querySelectorAll('input');
-        const ticker = inputs[0].value.trim().toUpperCase();
+        const item = inputs[0].value.trim().toUpperCase();
         const cost = parseFloat(inputs[1].value);
         const rawMaxPercent = inputs[2].value.trim();
         const maxPercentValue = rawMaxPercent === '' ? null : parseFloat(rawMaxPercent);
         const maxPercent = maxPercentValue !== null && !isNaN(maxPercentValue) ? Math.max(0, Math.min(100, maxPercentValue)) : null;
-        if (ticker && !isNaN(cost) && cost > 0) {
-          tickers[ticker] = { cost, maxPercent };
+        if (item && !isNaN(cost) && cost > 0) {
+          items[item] = { cost, maxPercent };
         }
       });
-      return tickers;
+      return items;
     }
 
-    // Updated finder: allows 1 ticker when necessary, still prefers diverse when possible
-    function findTopCombinations(tickers, budget, maxResults = 3) {
-      const tickerList = Object.entries(tickers).map(([name, { cost, maxPercent }]) => ({
+    function findTopCombinations(items, budget, maxResults = 3) {
+      const itemList = Object.entries(items).map(([name, { cost, maxPercent }]) => ({
         name,
         cost,
         maxPercent,
-        maxUnits: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
+        maxItems: maxPercent ? Math.floor((budget * maxPercent / 100) / cost) : Infinity
       }));
-      const targetPercent = 100 / tickerList.length;
+      const targetPercent = 100 / itemList.length;
       const balanceWindow = targetPercent * 0.10;
-      const costByTicker = Object.fromEntries(tickerList.map(t => [t.name, t.cost]));
+      const costByItem = Object.fromEntries(itemList.map(t => [t.name, t.cost]));
       const results = [];
 
       function recurse(index, current, totalCost, usedCount) {
         if (totalCost > budget + 0.01) return;
-        if (index === tickerList.length) {
-          if (usedCount >= 1 && totalCost > 0) {   // Changed from >=2 to >=1
+        if (index === itemList.length) {
+          if (usedCount >= 1 && totalCost > 0) {
             const rem = budget - totalCost;
             if (rem >= -0.01) {
               const balancedCount = Object.entries(current).reduce((count, [name, qty]) => {
                 if (qty <= 0) return count;
-                const percent = (qty * costByTicker[name] / budget) * 100;
+                const percent = (qty * costByItem[name] / budget) * 100;
                 return Math.abs(percent - targetPercent) <= balanceWindow ? count + 1 : count;
               }, 0);
 
@@ -375,7 +368,7 @@
                 combo: {...current},
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
-                tickerCount: usedCount,
+                itemCount: usedCount,
                 balancedCount
               });
             }
@@ -383,61 +376,60 @@
           return;
         }
 
-        const t = tickerList[index];
+        const t = itemList[index];
         let qty = 0;
         let costSoFar = 0;
         while (true) {
           recurse(index + 1, {...current, [t.name]: qty}, totalCost + costSoFar, usedCount + (qty > 0 ? 1 : 0));
           qty++;
           costSoFar += t.cost;
-          if (t.maxUnits !== Infinity && qty > t.maxUnits) break;
-          if (totalCost + costSoFar > budget + 20) break;   // Slightly higher prune for small budgets
+          if (t.maxItems !== Infinity && qty > t.maxItems) break;
+          if (totalCost + costSoFar > budget + 20) break;
           if (qty > 50) break;
         }
       }
 
       recurse(0, {}, 0, 0);
 
-      // Sort: best remainder first, then prefer more balanced equal-weight allocations, then more tickers
       results.sort((a, b) => {
         const remA = Math.abs(parseFloat(a.remainder));
         const remB = Math.abs(parseFloat(b.remainder));
         if (Math.abs(remA - remB) > 0.1) return remA - remB;
         if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
-        return b.tickerCount - a.tickerCount;   // Still prefer diverse when quality is similar
+        return b.itemCount - a.itemCount;
       });
 
       return results.slice(0, maxResults);
     }
 
-    function formatCombo(comboObj, tickers, budget) {
+    function formatCombo(comboObj, items, budget) {
       return Object.entries(comboObj)
         .filter(([_, qty]) => qty > 0)
-        .map(([ticker, qty]) => {
-          const cost = tickers[ticker].cost;
+        .map(([item, qty]) => {
+          const cost = items[item].cost;
           const subtotal = (qty * cost).toFixed(1);
           const percent = ((qty * cost) / budget * 100).toFixed(1);
-          return `${qty} ${ticker} [${subtotal}, ${percent}%]`;
+          return `${qty} ${item} [${subtotal}, ${percent}%]`;
         })
         .join('<br>');
     }
 
     function calculateAllocations() {
       const accounts = getAccounts();
-      const tickers = getTickers();
+      const items = getItems();
       const outputDiv = document.getElementById('output');
       outputDiv.innerHTML = `
         <h3>How Combinations are Found and Ranked</h3>
-        <p>Combinations are generated by recursively trying different quantities of each ticker within budget constraints and max percentages. They are ranked first by smallest remainder (closest to budget), then by how many tickers are balanced within 10% of equal weight, and finally by diversity (more tickers preferred).</p>
+        <p>Combinations are generated by recursively trying different quantities of each item within budget constraints and max percentages. They are ranked first by smallest remainder (closest to budget), then by how many items are balanced within 10% of equal weight, and finally by diversity (more items preferred).</p>
       `;
 
-      if (accounts.length === 0 || Object.keys(tickers).length === 0) {
-        outputDiv.innerHTML = '<p style="color:red; text-align:center;">Please add at least one account with a budget and one ticker.</p>';
+      if (accounts.length === 0 || Object.keys(items).length === 0) {
+        outputDiv.innerHTML = '<p style="color:red; text-align:center;">Please add at least one account with a budget and one item.</p>';
         return;
       }
 
-      accounts.forEach((acct, accountIndex) => {
-        const combos = findTopCombinations(tickers, acct.budget);
+      accounts.forEach((acct) => {
+        const combos = findTopCombinations(items, acct.budget);
 
         let html = `
           <div class="account-section" style="border-left: 8px solid ${acct.color};">
@@ -450,12 +442,12 @@
         if (combos.length === 0) {
           html += `<p>No valid combinations found.</p>`;
         } else {
-          combos.forEach((item, i) => {
+          combos.forEach((item) => {
             const isNearPerfect = parseFloat(item.remainder) <= 1.0;
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
-                ${formatCombo(item.combo, tickers, acct.budget)}<br>
+                ${formatCombo(item.combo, items, acct.budget)}<br>
                 Total: <strong>${item.total}</strong> 
                 <span class="remainder">(remainder ${item.remainder})</span>
               </div>
@@ -469,7 +461,6 @@
 
 
 
-    // Initialize
     window.onload = () => {
       const savedAccounts = loadSavedAccounts();
       
@@ -478,15 +469,15 @@
       });
 
       if (savedAccounts.length === 0) {
-        addAccountRow('Roth', '', '#4a90e2');
-        addAccountRow('Trad', '', '#50c878');
-        addAccountRow('Indi', '', '#f39c12');
+        addAccountRow('Example A', '50', '#4a90e2');
+        addAccountRow('Example B', '100', '#50c878');
+        addAccountRow('Example C', '250', '#f39c12');
       }
 
-      // Example tickers
-      addTickerRow('MSTR', 160);
+      addItemRow('AAA', 22);
+      addItemRow('BBB', 33);
+      addItemRow('CCC', 100);
 
-      // Auto-save accounts when changed
       const accountsTable = document.getElementById('accountsTable');
       accountsTable.addEventListener('change', saveAccounts);
       accountsTable.addEventListener('input', saveAccounts);
