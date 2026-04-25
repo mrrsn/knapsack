@@ -283,10 +283,15 @@
       return results.slice(0, maxResults);
     }
 
-    function formatCombo(comboObj) {
+    function formatCombo(comboObj, tickers, budget) {
       return Object.entries(comboObj)
         .filter(([_, qty]) => qty > 0)
-        .map(([ticker, qty]) => `${qty} ${ticker}`)
+        .map(([ticker, qty]) => {
+          const cost = tickers[ticker];
+          const subtotal = (qty * cost).toFixed(1);
+          const percent = ((qty * cost) / budget * 100).toFixed(1);
+          return `${qty} ${ticker} [${subtotal}, ${percent}%]`;
+        })
         .join(' + ');
     }
 
@@ -319,11 +324,10 @@
           combos.forEach((item, i) => {
             const isNearPerfect = parseFloat(item.remainder) <= 1.0;
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
-            const percentUsed = (parseFloat(item.total) / acct.budget * 100).toFixed(1);
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
                 <button class="copy-btn" onclick="copyCombo(this)">Copy</button>
-                <strong>#${i+1}:</strong> ${formatCombo(item.combo)} [${item.total}, ${percentUsed}%]<br>
+                <strong>#${i+1}:</strong> ${formatCombo(item.combo, tickers, acct.budget)}<br>
                 Total: <strong>${item.total}</strong> 
                 <span class="remainder">(remainder ${item.remainder})</span>
               </div>
