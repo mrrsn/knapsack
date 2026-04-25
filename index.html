@@ -5,43 +5,44 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Knapsack Solver</title>
 <style>
-  body { 
-    font-family: system-ui, sans-serif; 
-    max-width: 1100px; 
-    margin: 30px auto; 
-    padding: 20px; 
-    background: #f8f9fa; 
+  body {
+    font-family: system-ui, sans-serif;
+    max-width: 1100px;
+    margin: 30px auto;
+    padding: 20px;
+    background: #f8f9fa;
   }
   h1 { text-align: center; }
-  
-  table { 
-    width: 100%; 
-    border-collapse: collapse; 
-    margin-bottom: 30px; 
-    background: white; 
-    box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
-    table-layout: fixed;          
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    table-layout: fixed;
   }
-  th, td { 
-    padding: 10px 8px; 
-    text-align: left; 
-    border: 1px solid #ddd; 
+  th, td {
+    padding: 10px 8px;
+    text-align: left;
+    border: 1px solid #ddd;
     vertical-align: middle;
     overflow: hidden;
   }
-  th { 
-    background: #0066cc; 
-    color: white; 
+  th {
+    background: #0066cc;
+    color: white;
   }
-  
+
+  /* ==================== INPUT STYLING ==================== */
   input[type="text"],
-  input[type="number"] {
+  input[type="number"],
+  input[type="color"] {
     padding: 8px;
     border: 1px solid #ccc;
     border-radius: 4px;
     box-sizing: border-box;
-    width: 100%;
-    max-width: 100%;
+    font-size: 16px;
   }
 
   input[type="text"] {
@@ -49,15 +50,8 @@
   }
 
   input[type="number"] {
+    width: 100%;
     -moz-appearance: textfield;
-  }
-
-  input[type="color"] {
-    width: 48px;
-    height: 38px;
-    padding: 3px;
-    cursor: pointer;
-    border: 1px solid #ccc;
   }
 
   input[type="number"]::-webkit-outer-spin-button,
@@ -65,119 +59,118 @@
     -webkit-appearance: none;
     margin: 0;
   }
-  
-  input[type="color"] { 
-    width: 48px; 
-    height: 38px; 
-    padding: 3px; 
-    cursor: pointer; 
-    border: 1px solid #ccc;
-  }
-  
-  button { 
-    padding: 8px 16px; 
-    margin: 5px; 
-    background: #0066cc; 
-    color: white; 
-    border: none; 
-    border-radius: 6px; 
-    cursor: pointer; 
-  }
-  button:hover { background: #0055aa; }
-  .add-row { 
-    background: #28a745; 
-    margin: 0 0 30px 0;
-  }
-  
-  .output { margin-top: 40px; }
-  .account-section { 
-    margin-bottom: 35px; 
-    padding: 20px; 
-    border-radius: 10px; 
-    background: white; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.08); 
-  }
-  .account-header { 
-    display: flex; 
-    align-items: center; 
-    gap: 12px; 
-    margin-bottom: 15px; 
-    flex-wrap: wrap;
-  }
-  .combo { 
-    padding: 14px; 
-    margin: 10px 0; 
-    border-radius: 8px; 
-    border-left: 6px solid #ccc; 
-    font-family: monospace; 
-    word-break: break-all;
-  }
-  .perfect { 
-    border-left-color: #28a745; 
-    background: #e8f5e9; 
-  }
-  .remainder { 
-    color: #d32f2f; 
-    font-weight: bold; 
+
+  input[type="color"] {
+    width: 48px;
+    height: 38px;
+    padding: 3px;
+    cursor: pointer;
   }
 
-  .budget-col { width: 28%; }
-  .cost-col   { width: 30%; }
-  .symbolname-col { width: 45%; }
-  .acctname-col   { width: 38%; }
-  
+  .budget-cell,
+  .cost-cell {
+    padding: 6px 8px !important;
+  }
+
+  .budget-cell input,
+  .cost-cell input {
+    width: 100% !important;
+    margin: 0;
+    padding: 8px;
+  }
+
+  button {
+    padding: 8px 16px;
+    margin: 5px;
+    background: #0066cc;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  button:hover { background: #0055aa; }
+
+  .add-row {
+    background: #28a745;
+    margin: 0 0 30px 0;
+    width: 100%;
+    padding: 12px;
+    font-size: 16px;
+  }
+
+  .output { margin-top: 40px; }
+
+  .account-section {
+    margin-bottom: 35px;
+    padding: 20px;
+    border-radius: 10px;
+    background: white;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  }
+
+  .account-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+  }
+
+  .combo {
+    padding: 14px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border-left: 6px solid #ccc;
+    font-family: monospace;
+    word-break: break-all;
+  }
+  .perfect {
+    border-left-color: #28a745;
+    background: #e8f5e9;
+  }
+  .remainder {
+    color: #d32f2f;
+    font-weight: bold;
+  }
+
+  /* Column widths */
+  .budget-col { width: 26%; }
+  .color-col { width: 12%; }
+  .action-col { width: 14%; }
+  .symbolname-col { width: 48%; }
+  .cost-col { width: 32%; }
+  .acctname-col { width: 48%; }
+
+  /* ==================== MOBILE RESPONSIVENESS ==================== */
   @media (max-width: 768px) {
     body {
       margin: 15px auto;
       padding: 12px;
     }
-    
     h1 { font-size: 1.5em; }
     h2 { font-size: 1.2em; }
     h3 { font-size: 1.1em; margin: 15px 0 10px 0; }
-    p { font-size: 0.95em; margin-bottom: 20px; }
-    
+
     table {
-      font-size: 0.9em;
+      font-size: 0.95em;
     }
-    
     th, td {
       padding: 8px 6px;
     }
-    
+
     input[type="text"],
     input[type="number"] {
-      padding: 6px;
+      padding: 7px;
       font-size: 16px;
-      width: 80%;
     }
-    
+
     button {
-      padding: 6px 12px;
-      margin: 4px;
-      font-size: 0.9em;
+      padding: 8px 12px;
+      font-size: 0.95em;
     }
-    
-    button[style*="font-size:18px"] {
-      font-size: 16px !important;
-      padding: 12px 24px !important;
-    }
-    
-    .account-section {
-      padding: 15px;
-      margin-bottom: 20px;
-    }
-    
-    .account-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-    
-    .combo {
+
+    .add-row {
       padding: 12px;
-      margin: 8px 0;
-      font-size: 0.85em;
     }
   }
 
@@ -187,84 +180,28 @@
       margin: 10px auto;
       padding: 10px;
     }
-    
+
     h1 { font-size: 1.3em; margin: 10px 0; }
-    h2 { font-size: 1.1em; margin: 15px 0 10px 0; }
-    h3 { font-size: 1.0em; margin: 12px 0 8px 0; }
-    p { font-size: 0.9em; margin-bottom: 15px; }
-    
+    h2 { font-size: 1.1em; }
+    h3 { font-size: 1.0em; }
+
     table {
-      font-size: 0.8em;
-      margin-bottom: 15px;
+      font-size: 0.9em;
     }
-    
     th, td {
       padding: 6px 4px;
     }
-    
+
     input[type="text"],
     input[type="number"] {
-      padding: 5px;
+      padding: 6px;
       font-size: 16px;
-      width: 100%;
     }
-    
-    .acctname-col { width: 40%; }
-    .budget-col { width: 25%; }
-    .color-col { width: 20%; }
-    .action-col { width: 15%; }
-    .symbolname-col { width: 45%; }
-    .cost-col { width: 35%; }
-    
-    .budget-cell,
-    .cost-cell {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    
-    .budget-cell input,
-    .cost-cell input {
-      flex: 1 1 auto;
-      width: auto;
-      min-width: 0;
-    }
-    
-    button {
-      padding: 6px 10px;
-      margin: 3px;
-      font-size: 0.85em;
-      width: auto;
-      display: inline-block;
-      margin-bottom: 0;
-    }
-    
-    button.add-row,
-    button.calculate-btn {
-      width: calc(100% - 6px);
-      display: block;
-      margin-bottom: 6px;
-    }
-    
-    button[class*="add-row"] {
-      width: 100%;
-      margin: 10px 0;
-    }
-    
-    .account-section {
-      padding: 12px;
-      margin-bottom: 15px;
-    }
-    
-    .combo {
-      padding: 10px;
-      margin: 6px 0;
-      font-size: 0.8em;
-      word-break: break-word;
-    }
-    
 
+    .budget-col { width: 28%; }
+    .cost-col { width: 35%; }
+    .symbolname-col { width: 45%; }
+    .acctname-col { width: 40%; }
   }
 </style>
 </head>
@@ -360,9 +297,9 @@
       const tbody = document.getElementById('accountsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${name}" onblur="saveAccounts()" placeholder="Account name"></td>
+        <td><input type="text" value="${name}" placeholder="Account name" onblur="saveAccounts()"></td>
         <td class="budget-cell">
-          <input type="number" value="${budget}" step="0.01" min="0" placeholder="0" onblur="saveAccounts()">
+          <input type="number" value="${budget}" step="0.01" min="0" placeholder="Budget" onblur="saveAccounts()">
         </td>
         <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">x</button></td>
@@ -374,9 +311,9 @@
       const tbody = document.getElementById('symbolsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
-        <td><input type="text" value="${symbol}" oninput="this.value = this.value.toUpperCase(); saveSymbols()" placeholder="SYMBOL"></td>
+        <td><input type="text" value="${symbol}" placeholder="SYMBOL" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
         <td class="cost-cell">
-          <input type="number" value="${cost}" step="0.01" min="0" placeholder="0" onblur="saveSymbols()">
+          <input type="number" value="${cost}" step="0.01" min="0" placeholder="Cost" onblur="saveSymbols()">
         </td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
