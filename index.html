@@ -27,14 +27,13 @@
     text-align: left;
     border: 1px solid #ddd;
     vertical-align: middle;
-    overflow: hidden;
   }
   th {
     background: #0066cc;
     color: white;
   }
 
-  /* ==================== INPUT STYLING ==================== */
+  /* Input styling */
   input[type="text"],
   input[type="number"],
   input[type="color"] {
@@ -45,12 +44,11 @@
     font-size: 16px;
   }
 
-  input[type="text"] {
+  input[type="text"], input[type="number"] {
     width: 100%;
   }
 
   input[type="number"] {
-    width: 100%;
     -moz-appearance: textfield;
   }
 
@@ -67,16 +65,10 @@
     cursor: pointer;
   }
 
+  /* Fix for Budget and Cost cells */
   .budget-cell,
   .cost-cell {
     padding: 6px 8px !important;
-  }
-
-  .budget-cell input,
-  .cost-cell input {
-    width: 100% !important;
-    margin: 0;
-    padding: 8px;
   }
 
   button {
@@ -133,87 +125,64 @@
     font-weight: bold;
   }
 
-  /* Column widths - should roughly add up to ~100% per table */
-  .acctname-col   { width: 42%; }   /* Account name */
-  .budget-col     { width: 28%; }   /* Budget */
-  .color-col      { width: 12%; }   /* Color picker */
-  .remove-col     { width: 18%; }   /* Delete button */
+  /* Desktop column widths */
+  .acctname-col   { width: 42%; }
+  .budget-col     { width: 28%; }
+  .color-col      { width: 12%; }
+  .remove-col     { width: 18%; }
 
-  .symbolname-col { width: 50%; }   /* Symbol */
-  .cost-col       { width: 32%; }   /* Cost */
+  .symbolname-col { width: 50%; }
+  .cost-col       { width: 32%; }
 
   /* ==================== MOBILE RESPONSIVENESS ==================== */
   @media (max-width: 768px) {
-    body {
-      margin: 15px auto;
-      padding: 12px;
-    }
+    body { padding: 12px; }
     h1 { font-size: 1.5em; }
-    h2 { font-size: 1.2em; }
-    h3 { font-size: 1.1em; margin: 15px 0 10px 0; }
-
-    table {
-      font-size: 0.95em;
-    }
-    th, td {
-      padding: 8px 6px;
-    }
-
-    input[type="text"],
-    input[type="number"] {
-      padding: 7px;
-      font-size: 16px;
-    }
-
-    button {
-      padding: 8px 12px;
-      font-size: 0.95em;
-    }
-
-    .add-row {
-      padding: 12px;
-    }
 
     .acctname-col   { width: 40%; }
     .budget-col     { width: 30%; }
-    .color-col      { width: 18%; }
-    .remove-col     { width: 12%; }
+    .color-col      { width: 12%; }
+    .remove-col     { width: 18%; }
 
-    .symbolname-col { width: 50%; }
+    .symbolname-col { width: 48%; }
     .cost-col       { width: 32%; }
   }
 
   @media (max-width: 480px) {
-    body {
-      max-width: 100%;
-      margin: 10px auto;
-      padding: 10px;
+    body { padding: 10px; }
+    h1 { font-size: 1.3em; }
+
+    .acctname-col   { width: 37%; }
+    .budget-col     { width: 33%; }
+    .color-col      { width: 12%; }
+    .remove-col     { width: 18%; }
+
+    .symbolname-col { width: 46%; }
+    .cost-col       { width: 36%; }
+
+    /* Stack the two main calculation buttons vertically */
+    div[style*="display: flex"][style*="gap: 15px"] {
+      flex-direction: column;
+      align-items: center;
     }
 
-    h1 { font-size: 1.3em; margin: 10px 0; }
-    h2 { font-size: 1.1em; }
-    h3 { font-size: 1.0em; }
-
-    table {
-      font-size: 0.9em;
-    }
-    th, td {
-      padding: 6px 4px;
+    button[onclick*="calculateAllocations"] {
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 12px;
     }
 
     input[type="text"],
     input[type="number"] {
-      padding: 6px;
+      padding: 10px 8px;
       font-size: 16px;
+      min-height: 44px;
     }
 
-    .acctname-col   { width: 44%; }
-    .budget-col     { width: 26%; }
-    .color-col      { width: 18%; }
-    .remove-col     { width: 12%; }
-
-    .symbolname-col { width: 44%; }
-    .cost-col       { width: 38%; }
+    .budget-cell,
+    .cost-cell {
+      padding: 6px 8px !important;
+    }
   }
 </style>
 </head>
@@ -222,12 +191,12 @@
 
   <table id="accountsTable">
     <thead>
-        <tr>
-            <th class="acctname-col">Account</th>
-            <th class="budget-col">Budget (In Hundreds)</th>
-            <th class="color-col">Color</th>
-            <th class="remove-col">&#128293;</th> /* fire emoji for delete */
-        </tr>
+      <tr>
+        <th class="acctname-col">Account</th>
+        <th class="budget-col">Budget (In Hundreds)</th>
+        <th class="color-col">Color</th>
+        <th class="remove-col">Action</th>
+      </tr>
     </thead>
     <tbody id="accountsBody"></tbody>
   </table>
@@ -235,28 +204,35 @@
 
   <table id="symbolsTable">
     <thead>
-        <tr>
-            <th class="symbolname-col">Symbol</th>
-            <th class="cost-col">Cost</th>
-            <th class="remove-col">&#128293;</th> /* fire emoji for delete */
-        </tr>
+      <tr>
+        <th class="symbolname-col">Symbol</th>
+        <th class="cost-col">Cost</th>
+        <th class="remove-col">Action</th>
+      </tr>
     </thead>
     <tbody id="symbolsBody"></tbody>
   </table>
   <button class="add-row" onclick="addSymbolRow()">+ Add Symbol</button>
 
-  <div style="text-align:center; margin: 30px 0;">
-    <button onclick="calculateAllocations()" style="font-size:18px; padding:14px 32px;">Calculate Top 3 Combinations</button>
+  <div style="text-align:center; margin: 30px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+    <button onclick="calculateAllocations(false)" 
+            style="font-size:18px; padding:14px 32px; min-width: 220px;">
+      Optimize Available Budget
+    </button>
+    
+    <button onclick="calculateAllocations(true)" 
+            style="font-size:18px; padding:14px 32px; background: #28a745; min-width: 220px;">
+      Optimize Balanced Distribution
+    </button>
   </div>
 
   <div id="output" class="output"></div>
 
   <script>
+    // ====================== DATA LOADING / SAVING ======================
     function loadSavedAccounts() {
       const saved = localStorage.getItem('portfolioAccounts');
-      if (saved) {
-        return JSON.parse(saved);
-      }
+      if (saved) return JSON.parse(saved);
       return [
         { name: 'Example A', budget: 50, color: '#4a90e2' },
         { name: 'Example B', budget: 100, color: '#50c878' },
@@ -266,9 +242,7 @@
 
     function loadSavedSymbols() {
       const saved = localStorage.getItem('portfolioSymbols');
-      if (saved) {
-        return JSON.parse(saved);
-      }
+      if (saved) return JSON.parse(saved);
       return [
         { symbol: 'AAA', cost: 22 },
         { symbol: 'BBB', cost: 33 },
@@ -305,14 +279,13 @@
       localStorage.setItem('portfolioSymbols', JSON.stringify(symbolsToSave));
     }
 
+    // ====================== ROW ADDING ======================
     function addAccountRow(name = '', budget = '', color = '#0066cc') {
       const tbody = document.getElementById('accountsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${name}" placeholder="Account name" onblur="saveAccounts()"></td>
-        <td class="budget-cell">
-          <input type="number" value="${budget}" step="0.01" min="0" placeholder="Budget" onblur="saveAccounts()">
-        </td>
+        <td class="budget-cell"><input type="number" value="${budget}" step="0.01" min="0" placeholder="Budget" onblur="saveAccounts()"></td>
         <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">x</button></td>
       `;
@@ -324,14 +297,13 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${symbol}" placeholder="SYMBOL" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
-        <td class="cost-cell">
-          <input type="number" value="${cost}" step="0.01" min="0" placeholder="Cost" onblur="saveSymbols()">
-        </td>
+        <td class="cost-cell"><input type="number" value="${cost}" step="0.01" min="0" placeholder="Cost" onblur="saveSymbols()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
     }
 
+    // ====================== DATA RETRIEVAL ======================
     function getAccounts() {
       const rows = document.querySelectorAll('#accountsBody tr');
       const accounts = [];
@@ -361,14 +333,14 @@
       return symbols;
     }
 
-    function findTopCombinations(symbols, budget, maxResults = 3) {
+    // ====================== CORE ALGORITHM ======================
+    function findTopCombinations(symbols, budget, maxResults = 30) {
       const symbolList = Object.entries(symbols).map(([name, { cost }]) => ({
         name,
         cost: Number(cost)
       }));
 
       const costBySymbol = Object.fromEntries(symbolList.map(t => [t.name, t.cost]));
-      const n = symbolList.length;
       const results = [];
 
       function recurse(index, current, totalCost, usedCount) {
@@ -378,22 +350,19 @@
           if (usedCount >= 1 && totalCost > 0) {
             const rem = budget - totalCost;
             if (rem >= -0.01) {
-
+              const n = symbolList.length;
               const targetPercent = 100 / n;
               const balanceWindow = targetPercent * 0.10;
 
               let balancedCount = 0;
-              let isSingleSymbol = (usedCount === 1);
+              const isSingleSymbol = (usedCount === 1);
 
               Object.entries(current).forEach(([name, qty]) => {
                 if (qty <= 0) return;
                 const percent = (qty * costBySymbol[name] / budget) * 100;
-                if (Math.abs(percent - targetPercent) <= balanceWindow) {
-                  balancedCount++;
-                }
+                if (Math.abs(percent - targetPercent) <= balanceWindow) balancedCount++;
               });
 
-              // Special case for small budgets: don't penalize single-symbol combos
               const score = isSingleSymbol && n > 1 ? balancedCount + 0.5 : balancedCount;
 
               results.push({
@@ -401,7 +370,7 @@
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
                 symbolCount: usedCount,
-                balancedCount: score,     // adjusted score
+                balancedCount: score,
                 isSingleSymbol
               });
             }
@@ -411,26 +380,22 @@
 
         const t = symbolList[index];
         const maxQty = Math.floor((budget - totalCost) / t.cost) + 1;
-        const reasonableMax = Math.min(40, maxQty);   // safe cap
+        const reasonableMax = Math.min(40, maxQty);
 
         for (let qty = 0; qty <= reasonableMax; qty++) {
           const newCost = qty * t.cost;
-          const newUsedCount = usedCount + (qty > 0 ? 1 : 0);
-          recurse(index + 1, { ...current, [t.name]: qty }, totalCost + newCost, newUsedCount);
+          const newUsed = usedCount + (qty > 0 ? 1 : 0);
+          recurse(index + 1, { ...current, [t.name]: qty }, totalCost + newCost, newUsed);
         }
       }
 
       recurse(0, {}, 0, 0);
 
-      // Sorting: smallest remainder → best balanced score → more symbols
       results.sort((a, b) => {
         const remA = Math.abs(parseFloat(a.remainder));
         const remB = Math.abs(parseFloat(b.remainder));
         if (Math.abs(remA - remB) > 0.1) return remA - remB;
-
-        // Balanced count is now the main tie-breaker
         if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
-
         return b.symbolCount - a.symbolCount;
       });
 
@@ -449,22 +414,44 @@
         .join('<br>');
     }
 
-    function calculateAllocations() {
+    // ====================== MAIN CALCULATION ======================
+    function calculateAllocations(optimizeForBalance = false) {
       const accounts = getAccounts();
       const symbols = getSymbols();
       const outputDiv = document.getElementById('output');
+      
+      let title, description;
+
+      if (optimizeForBalance) {
+        title = "Most Balanced Distribution";
+        description = "Prioritizes equal weighting: each symbol gets as close as possible to the same percentage of the budget (e.g. with 5 symbols, each aims for ~20%). Good for diversification.";
+      } else {
+        title = "Optimize Available Budget";
+        description = "Prioritizes using as much of the budget as possible (closest total without exceeding). Balance is considered only as a tie-breaker. Best when you want to fully invest the available money.";
+      }
+
       outputDiv.innerHTML = `
-        <h3>How Combinations are Found and Ranked</h3>
-        <p>Combinations are generated by recursively trying different quantities of each symbol within budget constraints and max percentages. They are ranked first by smallest remainder (closest to budget), then by how many symbols are balanced within 10% of equal weight, and finally by diversity (more symbols preferred).</p>
+        <h3>${title}</h3>
+        <p>${description}</p>
       `;
 
       if (accounts.length === 0 || Object.keys(symbols).length === 0) {
-        outputDiv.innerHTML = '<p style="color:red; text-align:center;">Please add at least one account with a budget and one symbol.</p>';
+        outputDiv.innerHTML += '<p style="color:red; text-align:center;">Please add at least one account with a budget and one symbol.</p>';
         return;
       }
 
       accounts.forEach((acct) => {
-        const combos = findTopCombinations(symbols, acct.budget);
+        let combos = findTopCombinations(symbols, acct.budget);
+
+        if (optimizeForBalance) {
+          combos.sort((a, b) => {
+            if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
+            const remA = Math.abs(parseFloat(a.remainder));
+            const remB = Math.abs(parseFloat(b.remainder));
+            if (Math.abs(remA - remB) > 0.1) return remA - remB;
+            return b.symbolCount - a.symbolCount;
+          });
+        }
 
         let html = `
           <div class="account-section" style="border-left: 8px solid ${acct.color};">
@@ -474,17 +461,29 @@
             </div>
         `;
 
-        if (combos.length === 0) {
-          html += `<p>No valid combinations found.</p>`;
+        const displayCombos = combos.slice(0, 3);
+
+        if (displayCombos.length === 0) {
+          html += `<p>No valid combinations found for this budget.</p>`;
         } else {
-          combos.forEach((combo) => {
+          displayCombos.forEach((combo, index) => {
             const isNearPerfect = parseFloat(combo.remainder) <= 1.0;
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
+            
+            let extra = '';
+            if (combo.isSingleSymbol) {
+              extra = '<small style="color:#666; display:block; margin-top:6px;">(Best single-symbol option for this small budget)</small>';
+            }
+            if (optimizeForBalance && index === 0) {
+              extra += '<small style="color:#28a745; display:block; margin-top:6px;">★ Best balanced allocation</small>';
+            }
+
             html += `
               <div class="${cls}" style="border-left-color: ${acct.color};">
                 ${formatCombo(combo.combo, symbols, acct.budget)}<br>
-                Total: <strong>${combo.total}</strong> 
+                Total: <strong>${combo.total}</strong>
                 <span class="remainder">(remainder ${combo.remainder})</span>
+                ${extra}
               </div>
             `;
           });
@@ -494,26 +493,19 @@
       });
     }
 
-
-
+    // ====================== INITIALIZATION ======================
     window.onload = () => {
       const savedAccounts = loadSavedAccounts();
       const savedSymbols = loadSavedSymbols();
 
-      savedAccounts.forEach(acct => {
-        addAccountRow(acct.name, acct.budget, acct.color);
-      });
+      savedAccounts.forEach(acct => addAccountRow(acct.name, acct.budget, acct.color));
+      savedSymbols.forEach(sym => addSymbolRow(sym.symbol, sym.cost));
 
       if (savedAccounts.length === 0) {
-        addAccountRow('Example A', '50', '#4a90e2');
-        addAccountRow('Example B', '100', '#50c878');
-        addAccountRow('Example C', '250', '#f39c12');
+        addAccountRow('Example A', 50, '#4a90e2');
+        addAccountRow('Example B', 100, '#50c878');
+        addAccountRow('Example C', 250, '#f39c12');
       }
-
-      savedSymbols.forEach(sym => {
-        addSymbolRow(sym.symbol, sym.cost);
-      });
-
       if (savedSymbols.length === 0) {
         addSymbolRow('AAA', 22);
         addSymbolRow('BBB', 33);
