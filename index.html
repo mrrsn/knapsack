@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Flexible Portfolio Knapsack Allocator</title>
+  <style>
+    body { 
+      font-family: system-ui, sans-serif; 
+      max-width: 1100px; 
+      margin: 30px auto; 
+      padding: 20px; 
+      background: #f8f9fa; 
+    }
+    h1 { text-align: center; }
+    table { 
+      width: 100%; 
+      border-collapse: collapse; 
+      margin-bottom: 30px; 
+      background: white; 
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); 
+    }
+    th, td { 
+      padding: 12px; 
+      text-align: left; 
+      border: 1px solid #ddd; 
+    }
+    th { 
+      background: #0066cc; 
+      color: white; 
+    }
+    input[type="text"], input[type="number"] { 
+      width: 100%; 
+      padding: 8px; 
+      border: 1px solid #ccc; 
+      border-radius: 4px; 
+    }
+    input[type="color"] { 
+      width: 50px; 
+      height: 40px; 
+      padding: 2px; 
+      cursor: pointer; 
+    }
+    button { 
+      padding: 10px 18px; 
+      margin: 5px; 
+      background: #0066cc; 
+      color: white; 
+      border: none; 
+      border-radius: 6px; 
+      cursor: pointer; 
+    }
+    button:hover { background: #0055aa; }
+    .add-row { background: #28a745; }
+    .output { margin-top: 40px; }
+    .account-section { 
+      margin-bottom: 35px; 
+      padding: 20px; 
+      border-radius: 10px; 
+      background: white; 
+      box-shadow: 0 2px 10px rgba(0,0,0,0.08); 
+    }
+    .account-header { 
+      display: flex; 
+      align-items: center; 
+      gap: 12px; 
+      margin-bottom: 15px; 
+    }
+    .combo { 
+      padding: 14px; 
+      margin: 10px 0; 
+      border-radius: 8px; 
+      border-left: 6px solid #ccc; 
+      font-family: monospace; 
+    }
+    .perfect { 
+      border-left-color: #28a745; 
+      background: #e8f5e9; 
+    }
+    .remainder { 
+      color: #d32f2f; 
+      font-weight: bold; 
+    }
+    .copy-btn { 
+      float: right; 
+      font-size: 13px; 
+      padding: 4px 10px; 
+      background: #555; 
+      color: white; 
+      border: none; 
+      border-radius: 4px; 
+      cursor: pointer; 
+    }
+    .note { font-size: 0.9em; color: #555; margin-top: 5px; }
+  </style>
+</head>
+<body>
+  <h1>Flexible Portfolio Knapsack Allocator</h1>
+
+  <!-- Accounts Table -->
+  <h2>Accounts & Budgets (Names & Colors Saved)</h2>
+  <table id="accountsTable">
+    <thead>
+      <tr>
+        <th>Account Name</th>
+        <th>Budget</th>
+        <th>Color</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="accountsBody"></tbody>
+  </table>
+  <button class="add-row" onclick="addAccountRow()">+ Add Account</button>
+
+  <!-- Tickers Table -->
+  <h2>Tickers & Costs</h2>
+  <table id="tickersTable">
+    <thead>
+      <tr>
+        <th>Ticker</th>
+        <th>Cost per Unit</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody id="tickersBody"></tbody>
+  </table>
+  <button class="add-row" onclick="addTickerRow()">+ Add Ticker</button>
+
+  <div style="text-align:center; margin: 30px 0;">
+    <button onclick="calculateAllocations()" style="font-size:18px; padding:14px 32px;">Calculate Top 3 Combinations</button>
+  </div>
+
+  <div id="output" class="output"></div>
+
+  <script>
+    // Load saved accounts (name + color only)
+    function loadSavedAccounts() {
+      const saved = localStorage.getItem('portfolioAccounts');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+      return [
+        { name: 'Roth', color: '#4a90e2' },
+        { name: 'Trad', color: '#50c878' },
+        { name: 'Ind.', color: '#f39c12' }
+      ];
+    }
+
+    // Save accounts (name + color only)
+    function saveAccounts() {
+      const rows = document.querySelectorAll('#accountsBody tr');
+      const accountsToSave = [];
+      rows.forEach(row => {
+        const nameInput = row.querySelector('input[type="text"]');
+        const colorInput = row.querySelector('input[type="color"]');
+        if (nameInput && colorInput) {
+          const name = nameInput.value.trim();
+          const color = colorInput.value;
+          if (name) accountsToSave.push({ name, color });
+        }
+      });
+      localStorage.setItem('portfolioAccounts', JSON.stringify(accountsToSave));
+    }
+
+    function addAccountRow(name = '', budget = '', color = '#0066cc') {
+      const tbody = document.getElementById('accountsBody');
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="text" value="${name}" placeholder="Account Name" onblur="saveAccounts()"></td>
+        <td><input type="number" step="0.01" value="${budget}" placeholder="Budget"></td>
+        <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
+        <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">Remove</button></td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    function addTickerRow(ticker = '', cost = '') {
+      const tbody = document.getElementById('tickersBody');
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td><input type="text" value="${ticker}" placeholder="Ticker"></td>
+        <td><input type="number" step="0.01" value="${cost}" placeholder="Cost"></td>
+        <td><button onclick="this.parentElement.parentElement.remove()">Remove</button></td>
+      `;
+      tbody.appendChild(row);
+    }
+
+    function getAccounts() {
+      const rows = document.querySelectorAll('#accountsBody tr');
+      const accounts = [];
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const name = inputs[0].value.trim();
+        const budget = parseFloat(inputs[1].value);
+        const color = inputs[2].value;
+        if (name && !isNaN(budget) && budget > 0) {
+          accounts.push({ name, budget, color });
+        }
+      });
+      return accounts;
+    }
+
+    function getTickers() {
+      const rows = document.querySelectorAll('#tickersBody tr');
+      const tickers = {};
+      rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const ticker = inputs[0].value.trim().toUpperCase();
+        const cost = parseFloat(inputs[1].value);
+        if (ticker && !isNaN(cost) && cost > 0) {
+          tickers[ticker] = cost;
+        }
+      });
+      return tickers;
+    }
+
+    // Updated finder: allows 1 ticker when necessary, still prefers diverse when possible
+    function findTopCombinations(tickers, budget, maxResults = 3) {
+      const tickerList = Object.entries(tickers).map(([name, cost]) => ({name, cost}));
+      const results = [];
+
+      function recurse(index, current, totalCost, usedCount) {
+        if (totalCost > budget + 0.01) return;
+        if (index === tickerList.length) {
+          if (usedCount >= 1 && totalCost > 0) {   // Changed from >=2 to >=1
+            const rem = budget - totalCost;
+            if (rem >= -0.01) {
+              results.push({
+                combo: {...current},
+                total: totalCost.toFixed(1),
+                remainder: rem.toFixed(1),
+                tickerCount: usedCount
+              });
+            }
+          }
+          return;
+        }
+
+        const t = tickerList[index];
+        let qty = 0;
+        let costSoFar = 0;
+        while (true) {
+          recurse(index + 1, {...current, [t.name]: qty}, totalCost + costSoFar, usedCount + (qty > 0 ? 1 : 0));
+          qty++;
+          costSoFar += t.cost;
+          if (totalCost + costSoFar > budget + 20) break;   // Slightly higher prune for small budgets
+          if (qty > 50) break;
+        }
+      }
+
+      recurse(0, {}, 0, 0);
+
+      // Sort: best remainder first, then prefer more tickers when remainders are close
+      results.sort((a, b) => {
+        const remA = Math.abs(parseFloat(a.remainder));
+        const remB = Math.abs(parseFloat(b.remainder));
+        if (Math.abs(remA - remB) > 0.1) return remA - remB;
+        return b.tickerCount - a.tickerCount;   // Still prefer diverse when quality is similar
+      });
+
+      return results.slice(0, maxResults);
+    }
+
+    function formatCombo(comboObj) {
+      return Object.entries(comboObj)
+        .filter(([_, qty]) => qty > 0)
+        .map(([ticker, qty]) => `${qty} ${ticker}`)
+        .join(' + ');
+    }
+
+    function calculateAllocations() {
+      const accounts = getAccounts();
+      const tickers = getTickers();
+      const outputDiv = document.getElementById('output');
+      outputDiv.innerHTML = '';
+
+      if (accounts.length === 0 || Object.keys(tickers).length === 0) {
+        outputDiv.innerHTML = '<p style="color:red; text-align:center;">Please add at least one account with a budget and one ticker.</p>';
+        return;
+      }
+
+      accounts.forEach(acct => {
+        const combos = findTopCombinations(tickers, acct.budget);
+
+        let html = `
+          <div class="account-section" style="border-left: 8px solid ${acct.color};">
+            <div class="account-header">
+              <input type="color" value="${acct.color}" style="width:40px;height:40px;">
+              <h2 style="margin:0;">${acct.name} — Budget: ${acct.budget}</h2>
+            </div>
+            <div class="note">Top 3 combinations (single ticker allowed for small budgets)</div>
+        `;
+
+        if (combos.length === 0) {
+          html += `<p>No valid combinations found.</p>`;
+        } else {
+          combos.forEach((item, i) => {
+            const isNearPerfect = parseFloat(item.remainder) <= 1.0;
+            const cls = isNearPerfect ? 'combo perfect' : 'combo';
+            html += `
+              <div class="${cls}" style="border-left-color: ${acct.color};">
+                <button class="copy-btn" onclick="copyCombo(this)">Copy</button>
+                <strong>#${i+1}:</strong> ${formatCombo(item.combo)}<br>
+                Total: <strong>${item.total}</strong> 
+                <span class="remainder">(remainder ${item.remainder})</span>
+              </div>
+            `;
+          });
+        }
+        html += `</div>`;
+        outputDiv.innerHTML += html;
+      });
+    }
+
+    window.copyCombo = function(btn) {
+      const text = btn.parentElement.textContent.replace('Copy', '').trim();
+      navigator.clipboard.writeText(text).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => btn.textContent = orig, 1200);
+      });
+    };
+
+    // Initialize
+    window.onload = () => {
+      const savedAccounts = loadSavedAccounts();
+      
+      savedAccounts.forEach(acct => {
+        addAccountRow(acct.name, '', acct.color);
+      });
+
+      if (savedAccounts.length === 0) {
+        addAccountRow('Roth', '', '#4a90e2');
+        addAccountRow('Trad', '', '#50c878');
+        addAccountRow('Ind.', '', '#f39c12');
+      }
+
+      // Example tickers
+      addTickerRow('FIG', 15.5);
+      addTickerRow('KTOS', 56);
+      addTickerRow('BTU', 25.5);
+      addTickerRow('MSTR', 160);
+
+      // Auto-save accounts when changed
+      const accountsTable = document.getElementById('accountsTable');
+      accountsTable.addEventListener('change', saveAccounts);
+      accountsTable.addEventListener('input', saveAccounts);
+    };
+  </script>
+</body>
+</html>
