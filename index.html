@@ -133,13 +133,14 @@
     font-weight: bold;
   }
 
-  /* Column widths */
-  .budget-col { width: 26%; }
-  .color-col { width: 12%; }
-  .remove-col { width: 14%; }
-  .symbolname-col { width: 48%; }
-  .cost-col { width: 32%; }
-  .acctname-col { width: 48%; }
+  /* Column widths - should roughly add up to ~100% per table */
+  .acctname-col   { width: 42%; }   /* Account name */
+  .budget-col     { width: 28%; }   /* Budget */
+  .color-col      { width: 12%; }   /* Color picker */
+  .remove-col     { width: 18%; }   /* Delete button */
+
+  .symbolname-col { width: 50%; }   /* Symbol */
+  .cost-col       { width: 32%; }   /* Cost */
 
   /* ==================== MOBILE RESPONSIVENESS ==================== */
   @media (max-width: 768px) {
@@ -172,6 +173,14 @@
     .add-row {
       padding: 12px;
     }
+
+    .acctname-col   { width: 40%; }
+    .budget-col     { width: 30%; }
+    .color-col      { width: 12%; }
+    .remove-col     { width: 18%; }
+
+    .symbolname-col { width: 50%; }
+    .cost-col       { width: 32%; }
   }
 
   @media (max-width: 480px) {
@@ -198,10 +207,13 @@
       font-size: 16px;
     }
 
-    .budget-col { width: 28%; }
-    .cost-col { width: 35%; }
-    .symbolname-col { width: 45%; }
-    .acctname-col { width: 40%; }
+    .acctname-col   { width: 44%; }
+    .budget-col     { width: 26%; }
+    .color-col      { width: 12%; }
+    .remove-col     { width: 18%; }
+
+    .symbolname-col { width: 44%; }
+    .cost-col       { width: 38%; }
   }
 </style>
 </head>
@@ -214,7 +226,7 @@
             <th class="acctname-col">Account</th>
             <th class="budget-col">Budget (In Hundreds)</th>
             <th class="color-col">Color</th>
-            <th class="remove-col">Remove</th>
+            <th class="remove-col"></th>
         </tr>
     </thead>
     <tbody id="accountsBody"></tbody>
@@ -226,7 +238,7 @@
         <tr>
             <th class="symbolname-col">Symbol</th>
             <th class="cost-col">Cost</th>
-            <th class="remove-col">Remove</th>
+            <th class="remove-col"></th>
         </tr>
     </thead>
     <tbody id="symbolsBody"></tbody>
