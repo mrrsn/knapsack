@@ -291,7 +291,7 @@
         <td><input type="text" value="${name}" placeholder="Account Name" onblur="saveAccounts()"></td>
         <td><input type="number" step="0.01" value="${budget}" placeholder="Budget"></td>
         <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
-        <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">🗑️</button></td>
+        <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">x</button></td>
       `;
       tbody.appendChild(row);
     }
@@ -302,7 +302,7 @@
       row.innerHTML = `
         <td><input type="text" value="${ticker}" placeholder="Ticker"></td>
         <td><input type="number" step="0.01" value="${cost}" placeholder="Cost"></td>
-        <td><button onclick="this.parentElement.parentElement.remove()">🗑️</button></td>
+        <td><button onclick="this.parentElement.parentElement.remove()">x</button></td>
       `;
       tbody.appendChild(row);
     }
