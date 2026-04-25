@@ -352,32 +352,45 @@
     function findTopCombinations(symbols, budget, maxResults = 3) {
       const symbolList = Object.entries(symbols).map(([name, { cost }]) => ({
         name,
-        cost,
-        maxSymbols: Infinity
+        cost: Number(cost)
       }));
-      const targetPercent = 100 / symbolList.length;
-      const balanceWindow = targetPercent * 0.10;
+
       const costBySymbol = Object.fromEntries(symbolList.map(t => [t.name, t.cost]));
+      const n = symbolList.length;
       const results = [];
 
       function recurse(index, current, totalCost, usedCount) {
         if (totalCost > budget + 0.01) return;
+
         if (index === symbolList.length) {
           if (usedCount >= 1 && totalCost > 0) {
             const rem = budget - totalCost;
             if (rem >= -0.01) {
-              const balancedCount = Object.entries(current).reduce((count, [name, qty]) => {
-                if (qty <= 0) return count;
+
+              const targetPercent = 100 / n;
+              const balanceWindow = targetPercent * 0.10;
+
+              let balancedCount = 0;
+              let isSingleSymbol = (usedCount === 1);
+
+              Object.entries(current).forEach(([name, qty]) => {
+                if (qty <= 0) return;
                 const percent = (qty * costBySymbol[name] / budget) * 100;
-                return Math.abs(percent - targetPercent) <= balanceWindow ? count + 1 : count;
-              }, 0);
+                if (Math.abs(percent - targetPercent) <= balanceWindow) {
+                  balancedCount++;
+                }
+              });
+
+              // Special case for small budgets: don't penalize single-symbol combos
+              const score = isSingleSymbol && n > 1 ? balancedCount + 0.5 : balancedCount;
 
               results.push({
-                combo: {...current},
+                combo: { ...current },
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
                 symbolCount: usedCount,
-                balancedCount
+                balancedCount: score,     // adjusted score
+                isSingleSymbol
               });
             }
           }
@@ -385,23 +398,27 @@
         }
 
         const t = symbolList[index];
-        let qty = 0;
-        let costSoFar = 0;
-        while (true) {
-          recurse(index + 1, {...current, [t.name]: qty}, totalCost + costSoFar, usedCount + (qty > 0 ? 1 : 0));
-          qty++;
-          costSoFar += t.cost;
-          if (qty > 50) break;
+        const maxQty = Math.floor((budget - totalCost) / t.cost) + 1;
+        const reasonableMax = Math.min(40, maxQty);   // safe cap
+
+        for (let qty = 0; qty <= reasonableMax; qty++) {
+          const newCost = qty * t.cost;
+          const newUsedCount = usedCount + (qty > 0 ? 1 : 0);
+          recurse(index + 1, { ...current, [t.name]: qty }, totalCost + newCost, newUsedCount);
         }
       }
 
       recurse(0, {}, 0, 0);
 
+      // Sorting: smallest remainder → best balanced score → more symbols
       results.sort((a, b) => {
         const remA = Math.abs(parseFloat(a.remainder));
         const remB = Math.abs(parseFloat(b.remainder));
         if (Math.abs(remA - remB) > 0.1) return remA - remB;
+
+        // Balanced count is now the main tie-breaker
         if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
+
         return b.symbolCount - a.symbolCount;
       });
 
