@@ -397,7 +397,7 @@
             const rem = budget - totalCost;
             if (rem >= -0.01) {
 
-              // === NEW BALANCE SCORE ===
+              // Stronger balance scoring
               let totalDeviation = 0;
               let usedSymbols = 0;
               const targetPercent = 100 / n;
@@ -410,13 +410,18 @@
                 }
               });
 
-              const avgDeviation = usedSymbols > 0 ? totalDeviation / usedSymbols : 100;
-              const diversityBonus = (usedSymbols / n) * 50;           // reward using more symbols
-              let balanceScore = 100 - avgDeviation * 1.8 + diversityBonus;
+              const avgDeviation = usedSymbols > 0 ? totalDeviation / usedSymbols : 999;
+
+              // Heavier weight on low deviation
+              let balanceScore = 100 - (avgDeviation * 4.5);
+
+              // Small diversity bonus only if deviation is reasonable
+              const diversityBonus = (usedSymbols / n) * 25;
+              balanceScore += diversityBonus;
 
               const isSingleSymbol = (usedSymbols === 1);
               if (isSingleSymbol && n > 1) {
-                balanceScore = Math.max(10, balanceScore * 0.6);       // small penalty for single symbol
+                balanceScore *= 0.4;   // strong penalty for single symbol
               }
 
               results.push({
@@ -424,7 +429,7 @@
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
                 symbolCount: usedSymbols,
-                balancedCount: Math.max(0, balanceScore),   // reuse field name for compatibility
+                balancedCount: Math.max(0, balanceScore),
                 isSingleSymbol,
                 avgDeviation: avgDeviation.toFixed(1)
               });
@@ -446,7 +451,7 @@
 
       recurse(0, {}, 0, 0);
 
-      // Default sorting (used by "Optimize Available Budget")
+      // Default sorting for "Optimize Available Budget"
       results.sort((a, b) => {
         const remA = Math.abs(parseFloat(a.remainder));
         const remB = Math.abs(parseFloat(b.remainder));
