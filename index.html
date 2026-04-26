@@ -481,15 +481,13 @@
       const symbols = getSymbols();
       const outputDiv = document.getElementById('output');
       
-      let title, description;
-
-      if (optimizeForBalance) {
-        title = "Most Balanced Distribution";
-        description = "Prioritizes equal weighting: each symbol gets as close as possible to the same percentage of the budget (e.g. with 5 symbols, each aims for ~20%). Good for diversification.";
-      } else {
-        title = "Most Available Budget Used";
-        description = "Prioritizes using as much of the budget as possible (closest total without exceeding). Balance is considered only as a tie-breaker. Best when you want to fully invest the available money.";
-      }
+      const title = optimizeForBalance 
+        ? "Most Balanced Distribution" 
+        : "Best Use of Available Budget";
+        
+      const description = optimizeForBalance 
+        ? "Ranked by how close each symbol's percentage is to equal share (lower average deviation = better)." 
+        : "Ranked by how closely the total matches the account budget, with balance as secondary.";
 
       outputDiv.innerHTML = `
         <h3>${title}</h3>
@@ -502,14 +500,22 @@
       }
 
       accounts.forEach((acct) => {
-        let combos = findTopCombinations(symbols, acct.budget);
+        let combos = findTopCombinations(symbols, acct.budget, 50);   // generate more candidates
 
         if (optimizeForBalance) {
+          // STRONGER balanced sorting
           combos.sort((a, b) => {
-            if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
+            // Primary: Lowest average deviation
+            const devA = parseFloat(a.avgDeviation || 999);
+            const devB = parseFloat(b.avgDeviation || 999);
+            if (Math.abs(devA - devB) > 0.1) return devA - devB;
+
+            // Secondary: smallest remainder
             const remA = Math.abs(parseFloat(a.remainder));
             const remB = Math.abs(parseFloat(b.remainder));
             if (Math.abs(remA - remB) > 0.1) return remA - remB;
+
+            // Tertiary: more symbols
             return b.symbolCount - a.symbolCount;
           });
         }
@@ -528,14 +534,14 @@
           html += `<p>No valid combinations found for this budget.</p>`;
         } else {
           displayCombos.forEach((combo, index) => {
-            const isNearPerfect = parseFloat(combo.remainder) <= 1.0;
+            const isNearPerfect = parseFloat(combo.remainder) <= 2.0;
             const cls = isNearPerfect ? 'combo perfect' : 'combo';
             
             let extra = '';
             if (combo.isSingleSymbol) {
               extra = '<small style="color:#666; display:block; margin-top:6px;">(Best single-symbol option for this small budget)</small>';
             }
-            if (optimizeForBalance && index === 0) {
+            if (optimizeForBalance) {
               extra += `<small style="color:#28a745; display:block; margin-top:6px;">★ Best balanced (avg deviation ${combo.avgDeviation}%)</small>`;
             }
 
