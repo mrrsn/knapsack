@@ -134,102 +134,101 @@
   .symbolname-col { width: 50%; }
   .cost-col       { width: 32%; }
 
-/* ==================== MOBILE RESPONSIVENESS ==================== */
-@media (max-width: 768px) {
-  body { padding: 12px; }
-  h1 { font-size: 1.5em; }
+  /* ==================== MOBILE RESPONSIVENESS ==================== */
+  @media (max-width: 768px) {
+    body { padding: 12px; }
+    h1 { font-size: 1.5em; }
 
-  /* Your custom column widths */
-  .acctname-col   { width: 40%; }
-  .budget-col     { width: 30%; }
-  .color-col      { width: 16%; }
-  .remove-col     { width: 14%; }
+    /* Your column widths */
+    .acctname-col   { width: 40%; }
+    .budget-col     { width: 30%; }
+    .color-col      { width: 16%; }
+    .remove-col     { width: 14%; }
 
-  .symbolname-col { width: 46%; }
-  .cost-col       { width: 40%; }
+    .symbolname-col { width: 46%; }
+    .cost-col       { width: 40%; }
 
-  /* Center column content on mobile */
-  #accountsTable td,
-  #symbolsTable td {
-    text-align: center !important;
+    /* Center content on mobile */
+    #accountsTable td,
+    #symbolsTable td {
+      text-align: center !important;
+    }
+    #accountsTable th,
+    #symbolsTable th {
+      text-align: left !important;
+    }
+
+    .budget-cell input,
+    .cost-cell input {
+      text-align: center;
+    }
+
+    /* Small delete buttons on mobile */
+    button {
+      padding: 6px 10px !important;
+      font-size: 14px !important;
+      min-width: 32px;
+      min-height: 32px;
+      line-height: 1;
+    }
   }
 
-  /* Keep headers left-aligned for clarity */
-  #accountsTable th,
-  #symbolsTable th {
-    text-align: left !important;
+  @media (max-width: 480px) {
+    body { padding: 10px; }
+    h1 { font-size: 1.3em; }
+
+    /* Your column widths */
+    .acctname-col   { width: 38%; }
+    .budget-col     { width: 32%; }
+    .color-col      { width: 16%; }
+    .remove-col     { width: 14%; }
+
+    .symbolname-col { width: 38%; }
+    .cost-col       { width: 48%; }
+
+    /* Center content on small phones */
+    #accountsTable td,
+    #symbolsTable td {
+      text-align: center !important;
+    }
+    #accountsTable th,
+    #symbolsTable th {
+      text-align: left !important;
+    }
+
+    .budget-cell input,
+    .cost-cell input {
+      text-align: center;
+    }
+
+    /* Even smaller delete buttons */
+    button {
+      padding: 4px 8px !important;
+      font-size: 13px !important;
+      min-width: 28px;
+      min-height: 28px;
+      line-height: 1;
+    }
+
+    /* Stack calculation buttons vertically */
+    div[style*="display: flex"][style*="gap: 15px"] {
+      flex-direction: column;
+      align-items: center;
+    }
+
+    button[onclick*="calculateAllocations"] {
+      width: 100%;
+      max-width: 320px;
+      margin-bottom: 12px;
+    }
+
+    input[type="text"],
+    input[type="number"] {
+      padding: 10px 8px;
+      font-size: 16px;
+      min-height: 44px;
+    }
   }
-
-  /* Center inputs and buttons nicely */
-  .budget-cell input,
-  .cost-cell input,
-  #accountsTable td input,
-  #symbolsTable td input {
-    text-align: center;
-  }
-
-  button {
-    padding: 12px 20px;
-    font-size: 16px;
-  }
-}
-
-@media (max-width: 480px) {
-  body { padding: 10px; }
-  h1 { font-size: 1.3em; }
-
-  /* Your custom column widths */
-  .acctname-col   { width: 38%; }
-  .budget-col     { width: 32%; }
-  .color-col      { width: 16%; }
-  .remove-col     { width: 14%; }
-
-  .symbolname-col { width: 38%; }
-  .cost-col       { width: 48%; }
-
-  /* Center column content on small phones */
-  #accountsTable td,
-  #symbolsTable td {
-    text-align: center !important;
-  }
-
-  #accountsTable th,
-  #symbolsTable th {
-    text-align: left !important;
-  }
-
-  /* Center number inputs */
-  .budget-cell input,
-  .cost-cell input,
-  #accountsTable td input,
-  #symbolsTable td input {
-    text-align: center;
-  }
-
-  /* Stack the two main calculation buttons vertically */
-  div[style*="display: flex"][style*="gap: 15px"] {
-    flex-direction: column;
-    align-items: center;
-  }
-
-  button[onclick*="calculateAllocations"] {
-    width: 100%;
-    max-width: 320px;
-    margin-bottom: 12px;
-  }
-
-  input[type="text"],
-  input[type="number"] {
-    padding: 10px 8px;
-    font-size: 16px;
-    min-height: 44px;
-  }
-
-  .budget-cell,
-  .cost-cell {
-    padding: 6px 8px !important;
-  }
-}
 </style>
 </head>
 <body>
