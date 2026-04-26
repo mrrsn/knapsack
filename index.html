@@ -341,6 +341,7 @@
       }));
 
       const costBySymbol = Object.fromEntries(symbolList.map(t => [t.name, t.cost]));
+      const n = symbolList.length;
       const results = [];
 
       function recurse(index, current, totalCost, usedCount) {
@@ -350,28 +351,37 @@
           if (usedCount >= 1 && totalCost > 0) {
             const rem = budget - totalCost;
             if (rem >= -0.01) {
-              const n = symbolList.length;
-              const targetPercent = 100 / n;
-              const balanceWindow = targetPercent * 0.10;
 
-              let balancedCount = 0;
-              const isSingleSymbol = (usedCount === 1);
+              // === NEW BALANCE SCORE ===
+              let totalDeviation = 0;
+              let usedSymbols = 0;
+              const targetPercent = 100 / n;
 
               Object.entries(current).forEach(([name, qty]) => {
-                if (qty <= 0) return;
-                const percent = (qty * costBySymbol[name] / budget) * 100;
-                if (Math.abs(percent - targetPercent) <= balanceWindow) balancedCount++;
+                if (qty > 0) {
+                  usedSymbols++;
+                  const percent = (qty * costBySymbol[name] / budget) * 100;
+                  totalDeviation += Math.abs(percent - targetPercent);
+                }
               });
 
-              const score = isSingleSymbol && n > 1 ? balancedCount + 0.5 : balancedCount;
+              const avgDeviation = usedSymbols > 0 ? totalDeviation / usedSymbols : 100;
+              const diversityBonus = (usedSymbols / n) * 50;           // reward using more symbols
+              let balanceScore = 100 - avgDeviation * 1.8 + diversityBonus;
+
+              const isSingleSymbol = (usedSymbols === 1);
+              if (isSingleSymbol && n > 1) {
+                balanceScore = Math.max(10, balanceScore * 0.6);       // small penalty for single symbol
+              }
 
               results.push({
                 combo: { ...current },
                 total: totalCost.toFixed(1),
                 remainder: rem.toFixed(1),
-                symbolCount: usedCount,
-                balancedCount: score,
-                isSingleSymbol
+                symbolCount: usedSymbols,
+                balancedCount: Math.max(0, balanceScore),   // reuse field name for compatibility
+                isSingleSymbol,
+                avgDeviation: avgDeviation.toFixed(1)
               });
             }
           }
@@ -391,6 +401,7 @@
 
       recurse(0, {}, 0, 0);
 
+      // Default sorting (used by "Optimize Available Budget")
       results.sort((a, b) => {
         const remA = Math.abs(parseFloat(a.remainder));
         const remB = Math.abs(parseFloat(b.remainder));
@@ -426,7 +437,7 @@
         title = "Most Balanced Distribution";
         description = "Prioritizes equal weighting: each symbol gets as close as possible to the same percentage of the budget (e.g. with 5 symbols, each aims for ~20%). Good for diversification.";
       } else {
-        title = "Optimize Available Budget";
+        title = "Most Available Budget Used";
         description = "Prioritizes using as much of the budget as possible (closest total without exceeding). Balance is considered only as a tie-breaker. Best when you want to fully invest the available money.";
       }
 
@@ -475,7 +486,7 @@
               extra = '<small style="color:#666; display:block; margin-top:6px;">(Best single-symbol option for this small budget)</small>';
             }
             if (optimizeForBalance && index === 0) {
-              extra += '<small style="color:#28a745; display:block; margin-top:6px;">★ Best balanced allocation</small>';
+              extra += `<small style="color:#28a745; display:block; margin-top:6px;">★ Best balanced (avg deviation ${combo.avgDeviation}%)</small>`;
             }
 
             html += `
