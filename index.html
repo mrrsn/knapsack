@@ -379,7 +379,7 @@
     }
 
     // ====================== CORE ALGORITHM ======================
-    function findTopCombinations(symbols, budget, maxResults = 30) {
+    function findTopCombinations(symbols, budget, maxResults = 50) {
       const symbolList = Object.entries(symbols).map(([name, { cost }]) => ({
         name,
         cost: Number(cost)
@@ -397,14 +397,14 @@
             const rem = budget - totalCost;
             if (rem >= -0.01) {
 
-              // Stronger balance scoring
+              // === FIXED BALANCE SCORING ===
+              const usedSymbols = Object.values(current).filter(qty => qty > 0).length;
+              const targetPercent = 100 / usedSymbols;        // ← Key change: based on used symbols
+
               let totalDeviation = 0;
-              let usedSymbols = 0;
-              const targetPercent = 100 / n;
 
               Object.entries(current).forEach(([name, qty]) => {
                 if (qty > 0) {
-                  usedSymbols++;
                   const percent = (qty * costBySymbol[name] / budget) * 100;
                   totalDeviation += Math.abs(percent - targetPercent);
                 }
@@ -412,16 +412,12 @@
 
               const avgDeviation = usedSymbols > 0 ? totalDeviation / usedSymbols : 999;
 
-              // Heavier weight on low deviation
-              let balanceScore = 100 - (avgDeviation * 4.5);
-
-              // Small diversity bonus only if deviation is reasonable
-              const diversityBonus = (usedSymbols / n) * 25;
-              balanceScore += diversityBonus;
+              // Score: lower deviation = better
+              let balanceScore = 100 - (avgDeviation * 4.0);
 
               const isSingleSymbol = (usedSymbols === 1);
               if (isSingleSymbol && n > 1) {
-                balanceScore *= 0.4;   // strong penalty for single symbol
+                balanceScore *= 0.45;     // still penalize single-symbol, but not too harshly
               }
 
               results.push({
