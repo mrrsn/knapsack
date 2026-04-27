@@ -259,15 +259,20 @@
   </table>
   <button class="add-row" onclick="addSymbolRow()">+ Add Symbol</button>
 
-  <div style="text-align:center; margin: 30px 0; display: flex; gap: 15px; justify-content: center; flex-wrap: wrap;">
+  <div style="text-align:center; margin: 30px 0; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap;">
     <button onclick="calculateAllocations(false)" 
-            style="font-size:18px; padding:14px 32px; min-width: 220px;">
+            style="font-size:18px; padding:14px 28px; min-width: 210px;">
       Optimize Available Budget
     </button>
     
     <button onclick="calculateAllocations(true)" 
-            style="font-size:18px; padding:14px 32px; background: #28a745; min-width: 220px;">
+            style="font-size:18px; padding:14px 28px; background: #28a745; min-width: 210px;">
       Optimize Balanced Distribution
+    </button>
+    
+    <button onclick="calculateMarkSpecial()" 
+            style="font-size:18px; padding:14px 28px; background: #ff9800; min-width: 210px;">
+      Mark's Special Button
     </button>
   </div>
 
@@ -552,6 +557,95 @@
           });
         }
         html += `</div>`;
+        outputDiv.innerHTML += html;
+      });
+    }
+
+    // ====================== MARK'S SPECIAL BUTTON ======================
+    function calculateMarkSpecial() {
+      const accounts = getAccounts();
+      const symbolsObj = getSymbols();
+      const outputDiv = document.getElementById('output');
+
+      outputDiv.innerHTML = `
+        <h3>Mark's Special Allocation</h3>
+        <p>Greedy round-robin style: 1× each descending → then keep adding 1× each in ascending order until no more fit.</p>
+      `;
+
+      if (accounts.length === 0 || Object.keys(symbolsObj).length === 0) {
+        outputDiv.innerHTML += '<p style="color:red; text-align:center;">Please add at least one account and one symbol.</p>';
+        return;
+      }
+
+      // Convert symbols to array and sort by cost descending
+      let symbolList = Object.entries(symbolsObj).map(([name, data]) => ({
+        name,
+        cost: Number(data.cost)
+      }));
+
+      accounts.forEach((acct) => {
+        let remaining = acct.budget;
+        const allocation = {};                    // symbol → quantity
+
+        // Helper to add one of a symbol if possible
+        const tryAdd = (sym) => {
+          if (remaining >= sym.cost) {
+            allocation[sym.name] = (allocation[sym.name] || 0) + 1;
+            remaining -= sym.cost;
+            return true;
+          }
+          return false;
+        };
+
+        // Step 1: 1 of each, descending (highest cost first)
+        const descending = [...symbolList].sort((a, b) => b.cost - a.cost);
+        for (let sym of descending) {
+          tryAdd(sym);
+        }
+
+        // Step 2+: Keep doing ascending passes until we can't add anything
+        while (true) {
+          const ascending = [...symbolList].sort((a, b) => a.cost - b.cost);
+          let addedAnything = false;
+
+          for (let sym of ascending) {
+            if (tryAdd(sym)) {
+              addedAnything = true;
+            }
+          }
+
+          if (!addedAnything) break;   // can't add even the cheapest anymore
+        }
+
+        // Build display
+        let comboText = Object.entries(allocation)
+          .filter(([_, qty]) => qty > 0)
+          .sort((a, b) => b[1] - a[1])   // optional: sort by quantity
+          .map(([symbol, qty]) => {
+            const cost = symbolsObj[symbol].cost;
+            const subtotal = (qty * cost).toFixed(1);
+            const percent = ((qty * cost) / acct.budget * 100).toFixed(1);
+            return `${qty} ${symbol} [${subtotal}, ${percent}%]`;
+          })
+          .join('<br>');
+
+        const totalUsed = (acct.budget - remaining).toFixed(1);
+        const remainder = remaining.toFixed(1);
+
+        const html = `
+          <div class="account-section" style="border-left: 8px solid ${acct.color};">
+            <div class="account-header">
+              <input type="color" value="${acct.color}" style="width:40px;height:40px;">
+              <h2 style="margin:0;">${acct.name} — Budget: ${acct.budget}</h2>
+            </div>
+            <div class="combo perfect" style="border-left-color: ${acct.color};">
+              ${comboText || 'No symbols could be added.'}<br>
+              Total: <strong>${totalUsed}</strong>
+              <span class="remainder">(remainder ${remainder})</span>
+            </div>
+          </div>
+        `;
+
         outputDiv.innerHTML += html;
       });
     }
