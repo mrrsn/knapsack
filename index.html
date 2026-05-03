@@ -276,30 +276,13 @@
     </button>
   </div>
 
-  <div id="output" class="output"></div>
+  <div id="shareSection" style="text-align:center; margin: 20px 0;">
+    <button onclick="generateShareLink()" style="font-size:16px; padding:10px 18px;">Generate shareable URL</button>
+    <button onclick="copyShareLink()" style="font-size:16px; padding:10px 18px;">Copy URL</button>
+    <div id="shareLink" style="margin-top:12px; word-break:break-all; font-size:0.95rem; color:#333;"></div>
+  </div>
 
   <script>
-    // ====================== DATA LOADING / SAVING ======================
-    function loadSavedAccounts() {
-      const saved = localStorage.getItem('portfolioAccounts');
-      if (saved) return JSON.parse(saved);
-      return [
-        { name: 'Example A', budget: 50, color: '#4a90e2' },
-        { name: 'Example B', budget: 100, color: '#50c878' },
-        { name: 'Example C', budget: 250, color: '#f39c12' }
-      ];
-    }
-
-    function loadSavedSymbols() {
-      const saved = localStorage.getItem('portfolioSymbols');
-      if (saved) return JSON.parse(saved);
-      return [
-        { symbol: 'AAA', cost: 22 },
-        { symbol: 'BBB', cost: 33 },
-        { symbol: 'CCC', cost: 100 }
-      ];
-    }
-
     function saveAccounts() {
       const rows = document.querySelectorAll('#accountsBody tr');
       const accountsToSave = [];
@@ -327,6 +310,52 @@
         }
       });
       localStorage.setItem('portfolioSymbols', JSON.stringify(symbolsToSave));
+    }
+
+    function getDataFromUrl() {
+      const params = new URLSearchParams(window.location.search);
+      const raw = params.get('data');
+      if (!raw) return null;
+      try {
+        const decoded = decodeURIComponent(raw);
+        const parsed = JSON.parse(decoded);
+        if (parsed && Array.isArray(parsed.accounts) && Array.isArray(parsed.symbols)) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn('Unable to parse shared data from URL', e);
+      }
+      return null;
+    }
+
+    function generateShareLink() {
+      const data = {
+        accounts: getAccounts().map(({ name, budget, color }) => ({ name, budget, color })),
+        symbols: Object.entries(getSymbols()).map(([symbol, { cost }]) => ({ symbol, cost }))
+      };
+      const encoded = encodeURIComponent(JSON.stringify(data));
+      const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
+      window.history.replaceState(null, '', `${window.location.pathname}?data=${encoded}`);
+      const shareLink = document.getElementById('shareLink');
+      shareLink.textContent = shareUrl;
+      return shareUrl;
+    }
+
+    function copyShareLink() {
+      const shareLink = document.getElementById('shareLink');
+      let url = shareLink.textContent;
+      if (!url) {
+        url = generateShareLink();
+      }
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(url).then(() => {
+          shareLink.textContent = 'Copied! ' + url;
+        }).catch(() => {
+          window.prompt('Copy this URL', url);
+        });
+      } else {
+        window.prompt('Copy this URL', url);
+      }
     }
 
     // ====================== ROW ADDING ======================
@@ -652,8 +681,9 @@
 
     // ====================== INITIALIZATION ======================
     window.onload = () => {
-      const savedAccounts = loadSavedAccounts();
-      const savedSymbols = loadSavedSymbols();
+      const urlData = getDataFromUrl();
+      const savedAccounts = urlData ? urlData.accounts : loadSavedAccounts();
+      const savedSymbols = urlData ? urlData.symbols : loadSavedSymbols();
 
       savedAccounts.forEach(acct => addAccountRow(acct.name, acct.budget, acct.color));
       savedSymbols.forEach(sym => addSymbolRow(sym.symbol, sym.cost));
@@ -667,6 +697,11 @@
         addSymbolRow('AAA', 22);
         addSymbolRow('BBB', 33);
         addSymbolRow('CCC', 100);
+      }
+
+      if (urlData) {
+        const shareLink = document.getElementById('shareLink');
+        shareLink.textContent = `${window.location.origin}${window.location.pathname}${window.location.search}`;
       }
 
       const accountsTable = document.getElementById('accountsTable');
