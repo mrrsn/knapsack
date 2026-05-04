@@ -276,12 +276,6 @@
     </button>
   </div>
 
-  <div id="shareSection" style="text-align:center; margin: 20px 0;">
-    <button onclick="generateShareLink()" style="font-size:16px; padding:10px 18px;">Generate shareable URL</button>
-    <button onclick="copyShareLink()" style="font-size:16px; padding:10px 18px;">Copy URL</button>
-    <div id="shareLink" style="margin-top:12px; word-break:break-all; font-size:0.95rem; color:#333;"></div>
-  </div>
-
   <div id="output" class="output"></div>
 
   <script>
@@ -328,36 +322,6 @@
         console.warn('Unable to parse shared data from URL', e);
       }
       return null;
-    }
-
-    function generateShareLink() {
-      const data = {
-        accounts: getAccounts().map(({ name, budget, color }) => ({ name, budget, color })),
-        symbols: Object.entries(getSymbols()).map(([symbol, { cost }]) => ({ symbol, cost }))
-      };
-      const encoded = encodeURIComponent(JSON.stringify(data));
-      const shareUrl = `${window.location.origin}${window.location.pathname}?data=${encoded}`;
-      window.history.replaceState(null, '', `${window.location.pathname}?data=${encoded}`);
-      const shareLink = document.getElementById('shareLink');
-      shareLink.textContent = shareUrl;
-      return shareUrl;
-    }
-
-    function copyShareLink() {
-      const shareLink = document.getElementById('shareLink');
-      let url = shareLink.textContent;
-      if (!url) {
-        url = generateShareLink();
-      }
-      if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(url).then(() => {
-          shareLink.textContent = 'Copied! ' + url;
-        }).catch(() => {
-          window.prompt('Copy this URL', url);
-        });
-      } else {
-        window.prompt('Copy this URL', url);
-      }
     }
 
     // ====================== ROW ADDING ======================
@@ -713,8 +677,7 @@
       }
 
       if (urlData) {
-        const shareLink = document.getElementById('shareLink');
-        shareLink.textContent = `${window.location.origin}${window.location.pathname}${window.location.search}`;
+        window.history.replaceState(null, '', `${window.location.pathname}${window.location.search}`);
       }
 
       const accountsTable = document.getElementById('accountsTable');
