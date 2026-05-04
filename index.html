@@ -292,6 +292,7 @@
         }
       });
       localStorage.setItem('portfolioAccounts', JSON.stringify(accountsToSave));
+      updateUrlWithData();
     }
 
     function saveSymbols() {
@@ -306,22 +307,104 @@
         }
       });
       localStorage.setItem('portfolioSymbols', JSON.stringify(symbolsToSave));
+      updateUrlWithData();
     }
 
-    function getDataFromUrl() {
+    function base64UrlEncodeUnicode(str) {
+      const utf8 = encodeURIComponent(str).replace(/%([0-9A-F]{2})/g,
+        (match, p1) => String.fromCharCode('0x' + p1)
+      );
+      return btoa(utf8).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function base64UrlDecodeUnicode(str) {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) str += '=';
+      const binary = atob(str);
+      const utf8 = binary.split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('');
+      return decodeURIComponent(utf8);
+    }
+
+    function bytesToBase64Url(bytes) {
+      let binary = '';
+      const chunkSize = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+      }
+      return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    function base64UrlToBytes(str) {
+      str = str.replace(/-/g, '+').replace(/_/g, '/');
+      while (str.length % 4) str += '=';
+      const binary = atob(str);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i += 1) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+      return bytes;
+    }
+
+    async function compressJsonForUrl(data) {
+      const json = JSON.stringify(data);
+      if ('CompressionStream' in window) {
+        const uint8 = new TextEncoder().encode(json);
+        const cs = new CompressionStream('deflate');
+        const compressedBuffer = await new Response(new Blob([uint8]).stream().pipeThrough(cs)).arrayBuffer();
+        return 'C:' + bytesToBase64Url(new Uint8Array(compressedBuffer));
+      }
+      return 'U:' + base64UrlEncodeUnicode(json);
+    }
+
+    async function decompressJsonFromUrl(encoded) {
+      if (!encoded) return null;
+      try {
+        const prefix = encoded.slice(0, 2);
+        const payload = encoded.slice(2);
+        let json;
+        if (prefix === 'C:') {
+          if (!('DecompressionStream' in window)) {
+            console.warn('Browser does not support DecompressionStream.');
+            return null;
+          }
+          const bytes = base64UrlToBytes(payload);
+          const ds = new DecompressionStream('deflate');
+          const decompressedBuffer = await new Response(new Blob([bytes]).stream().pipeThrough(ds)).arrayBuffer();
+          json = new TextDecoder().decode(decompressedBuffer);
+        } else if (prefix === 'U:') {
+          json = base64UrlDecodeUnicode(payload);
+        } else {
+          json = base64UrlDecodeUnicode(encoded);
+        }
+        return JSON.parse(json);
+      } catch (e) {
+        console.warn('Unable to decode shared data from URL', e);
+        return null;
+      }
+    }
+
+    async function getDataFromUrl() {
       const params = new URLSearchParams(window.location.search);
       const raw = params.get('data');
       if (!raw) return null;
-      try {
-        const decoded = decodeURIComponent(raw);
-        const parsed = JSON.parse(decoded);
-        if (parsed && Array.isArray(parsed.accounts) && Array.isArray(parsed.symbols)) {
-          return parsed;
-        }
-      } catch (e) {
-        console.warn('Unable to parse shared data from URL', e);
+      return await decompressJsonFromUrl(raw);
+    }
+
+    async function updateUrlWithData() {
+      const data = {
+        accounts: getAccounts().map(({ name, budget, color }) => ({ name, budget, color })),
+        symbols: Object.entries(getSymbols()).map(([symbol, { cost }]) => ({ symbol, cost }))
+      };
+      if (data.accounts.length === 0 && data.symbols.length === 0) {
+        window.history.replaceState(null, '', window.location.pathname);
+        return;
       }
-      return null;
+      try {
+        const encoded = await compressJsonForUrl(data);
+        window.history.replaceState(null, '', `${window.location.pathname}?data=${encoded}`);
+      } catch (e) {
+        console.warn('Unable to update URL with compressed data', e);
+      }
     }
 
     // ====================== ROW ADDING ======================
@@ -648,17 +731,31 @@
     // ====================== STORAGE FUNCTIONS ======================
     function loadSavedAccounts() {
       const saved = localStorage.getItem('portfolioAccounts');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Invalid portfolioAccounts in localStorage, clearing corrupted data', e);
+        localStorage.removeItem('portfolioAccounts');
+        return [];
+      }
     }
 
     function loadSavedSymbols() {
       const saved = localStorage.getItem('portfolioSymbols');
-      return saved ? JSON.parse(saved) : [];
+      if (!saved) return [];
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.warn('Invalid portfolioSymbols in localStorage, clearing corrupted data', e);
+        localStorage.removeItem('portfolioSymbols');
+        return [];
+      }
     }
 
     // ====================== INITIALIZATION ======================
-    window.onload = () => {
-      const urlData = getDataFromUrl();
+    window.onload = async () => {
+      const urlData = await getDataFromUrl();
       const savedAccounts = urlData ? urlData.accounts : loadSavedAccounts();
       const savedSymbols = urlData ? urlData.symbols : loadSavedSymbols();
 
