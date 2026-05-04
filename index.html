@@ -679,6 +679,17 @@
       });
     }
 
+    // ====================== STORAGE FUNCTIONS ======================
+    function loadSavedAccounts() {
+      const saved = localStorage.getItem('portfolioAccounts');
+      return saved ? JSON.parse(saved) : [];
+    }
+
+    function loadSavedSymbols() {
+      const saved = localStorage.getItem('portfolioSymbols');
+      return saved ? JSON.parse(saved) : [];
+    }
+
     // ====================== INITIALIZATION ======================
     window.onload = () => {
       const urlData = getDataFromUrl();
