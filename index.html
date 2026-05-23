@@ -549,7 +549,7 @@
           const cost = symbols[symbol].cost;
           const subtotal = (qty * cost).toFixed(1);
           const percent = ((qty * cost) / budget * 100).toFixed(1);
-          return `${qty} ${symbol} [${subtotal}, ${percent}%]`;
+          return `${qty} ${symbol} @ ${cost} [${subtotal}, ${percent}%]`;
         })
         .join('<br>');
     }
@@ -703,7 +703,7 @@
             const cost = symbolsObj[symbol].cost;
             const subtotal = (qty * cost).toFixed(1);
             const percent = ((qty * cost) / acct.budget * 100).toFixed(1);
-            return `${qty} ${symbol} [${subtotal}, ${percent}%]`;
+            return `${qty} ${symbol} @ ${cost} [${subtotal}, ${percent}%]`;
           })
           .join('<br>');
 
