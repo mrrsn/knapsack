@@ -133,6 +133,7 @@
 
   .symbolname-col { width: 50%; }
   .cost-col       { width: 32%; }
+  .force-col      { width: 12%; }
 
   /* ==================== MOBILE RESPONSIVENESS ==================== */
   @media (max-width: 768px) {
@@ -146,7 +147,8 @@
     .remove-col     { width: 14%; }
 
     .symbolname-col { width: 46%; }
-    .cost-col       { width: 40%; }
+    .cost-col       { width: 34%; }
+    .force-col      { width: 20%; }
 
     /* Center content on mobile */
     #accountsTable td,
@@ -184,7 +186,8 @@
     .remove-col     { width: 14%; }
 
     .symbolname-col { width: 38%; }
-    .cost-col       { width: 48%; }
+    .cost-col       { width: 40%; }
+    .force-col      { width: 22%; }
 
     /* Center content on small phones */
     #accountsTable td,
@@ -252,6 +255,7 @@
       <tr>
         <th class="symbolname-col">Symbol</th>
         <th class="cost-col">Cost</th>
+        <th class="force-col">Force</th>
         <th class="remove-col"></th>
       </tr>
     </thead>
@@ -302,8 +306,10 @@
         const inputs = row.querySelectorAll('input');
         const symbol = inputs[0].value.trim().toUpperCase();
         const cost = parseFloat(inputs[1].value);
+        const forceRaw = inputs[2] ? inputs[2].value : '';
+        const force = forceRaw === '' ? null : parseInt(forceRaw, 10);
         if (symbol && !isNaN(cost) && cost > 0) {
-          symbolsToSave.push({ symbol, cost });
+          symbolsToSave.push({ symbol, cost, force });
         }
       });
       localStorage.setItem('portfolioSymbols', JSON.stringify(symbolsToSave));
@@ -393,7 +399,7 @@
     async function updateUrlWithData() {
       const data = {
         accounts: getAccounts().map(({ name, budget, color }) => ({ name, budget, color })),
-        symbols: Object.entries(getSymbols()).map(([symbol, { cost }]) => ({ symbol, cost }))
+        symbols: Object.entries(getSymbols()).map(([symbol, { cost, force }]) => ({ symbol, cost, force }))
       };
       if (data.accounts.length === 0 && data.symbols.length === 0) {
         window.history.replaceState(null, '', window.location.pathname);
@@ -420,12 +426,13 @@
       tbody.appendChild(row);
     }
 
-    function addSymbolRow(symbol = '', cost = '') {
+    function addSymbolRow(symbol = '', cost = '', force = '') {
       const tbody = document.getElementById('symbolsBody');
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${symbol}" placeholder="SYMBOL" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
         <td class="cost-cell"><input type="number" value="${cost}" step="0.01" min="0" placeholder="Cost" onblur="saveSymbols()"></td>
+        <td class="cost-cell"><input type="number" value="${force}" step="1" min="0" placeholder="Force" onblur="saveSymbols()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
@@ -454,8 +461,14 @@
         const inputs = row.querySelectorAll('input');
         const symbol = inputs[0].value.trim().toUpperCase();
         const cost = parseFloat(inputs[1].value);
+        const forceRaw = inputs[2] ? inputs[2].value : '';
+        let force = null;
+        if (forceRaw !== '') {
+          const f = parseInt(forceRaw, 10);
+          if (!isNaN(f) && f >= 0) force = f;
+        }
         if (symbol && !isNaN(cost) && cost > 0) {
-          symbols[symbol] = { cost };
+          symbols[symbol] = { cost, force };
         }
       });
       return symbols;
@@ -463,9 +476,10 @@
 
     // ====================== CORE ALGORITHM ======================
     function findTopCombinations(symbols, budget, maxResults = 50) {
-      const symbolList = Object.entries(symbols).map(([name, { cost }]) => ({
+      const symbolList = Object.entries(symbols).map(([name, { cost, force }]) => ({
         name,
-        cost: Number(cost)
+        cost: Number(cost),
+        force: (typeof force === 'number' ? force : undefined)
       }));
 
       const costBySymbol = Object.fromEntries(symbolList.map(t => [t.name, t.cost]));
@@ -521,7 +535,23 @@
         const maxQty = Math.floor((budget - totalCost) / t.cost) + 1;
         const reasonableMax = Math.min(40, maxQty);
 
-        for (let qty = 0; qty <= reasonableMax; qty++) {
+        // Determine bounds based on `force`:
+        // - undefined: no forcing => allow 0..reasonableMax
+        // - 0: force none => only 0
+        // - >0: force at least 1 up to `force` (but not exceeding reasonableMax)
+        let lower = 0;
+        let upper = reasonableMax;
+        if (typeof t.force === 'number') {
+          if (t.force === 0) {
+            lower = 0;
+            upper = 0;
+          } else if (t.force > 0) {
+            lower = 1;
+            upper = Math.min(reasonableMax, t.force);
+          }
+        }
+
+        for (let qty = lower; qty <= upper; qty++) {
           const newCost = qty * t.cost;
           const newUsed = usedCount + (qty > 0 ? 1 : 0);
           recurse(index + 1, { ...current, [t.name]: qty }, totalCost + newCost, newUsed);
@@ -655,35 +685,54 @@
         return;
       }
 
-      // Convert symbols to array and sort by cost descending
+      // Convert symbols to array and include `force`
       let symbolList = Object.entries(symbolsObj).map(([name, data]) => ({
         name,
-        cost: Number(data.cost)
+        cost: Number(data.cost),
+        force: (typeof data.force === 'number' ? data.force : undefined)
       }));
 
       accounts.forEach((acct) => {
         let remaining = acct.budget;
         const allocation = {};                    // symbol → quantity
 
-        // Helper to add one of a symbol if possible
+        // Pre-apply forced allocations and filter out symbols forced-to-none
+        const usableSymbols = symbolList.filter(s => s.force !== 0);
+
+        // Apply forced amounts first (up to `force` or budget)
+        usableSymbols.forEach(sym => {
+          if (typeof sym.force === 'number' && sym.force > 0) {
+            const maxByBudget = Math.floor(remaining / sym.cost);
+            const forcedCount = Math.min(sym.force, maxByBudget);
+            if (forcedCount > 0) {
+              allocation[sym.name] = (allocation[sym.name] || 0) + forcedCount;
+              remaining -= forcedCount * sym.cost;
+            }
+          }
+        });
+
+        // Helper to add one of a symbol if possible (respecting force upper bounds)
         const tryAdd = (sym) => {
+          const currentQty = allocation[sym.name] || 0;
+          const limit = (typeof sym.force === 'number' && sym.force >= 0) ? sym.force : Infinity;
+          if (currentQty >= limit) return false;
           if (remaining >= sym.cost) {
-            allocation[sym.name] = (allocation[sym.name] || 0) + 1;
+            allocation[sym.name] = currentQty + 1;
             remaining -= sym.cost;
             return true;
           }
           return false;
         };
 
-        // Step 1: 1 of each, descending (highest cost first)
-        const descending = [...symbolList].sort((a, b) => b.cost - a.cost);
+        // Step 1: 1 of each (descending by cost) for symbols that are allowed
+        const descending = [...usableSymbols].sort((a, b) => b.cost - a.cost);
         for (let sym of descending) {
           tryAdd(sym);
         }
 
         // Step 2+: Keep doing ascending passes until we can't add anything
         while (true) {
-          const ascending = [...symbolList].sort((a, b) => a.cost - b.cost);
+          const ascending = [...usableSymbols].sort((a, b) => a.cost - b.cost);
           let addedAnything = false;
 
           for (let sym of ascending) {
@@ -760,7 +809,7 @@
       const savedSymbols = urlData ? urlData.symbols : loadSavedSymbols();
 
       savedAccounts.forEach(acct => addAccountRow(acct.name, acct.budget, acct.color));
-      savedSymbols.forEach(sym => addSymbolRow(sym.symbol, sym.cost));
+      savedSymbols.forEach(sym => addSymbolRow(sym.symbol, sym.cost, (typeof sym.force !== 'undefined' && sym.force !== null) ? sym.force : ''));
 
       if (savedAccounts.length === 0) {
         addAccountRow('Example A', 50, '#4a90e2');
