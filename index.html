@@ -538,7 +538,7 @@
         // Determine bounds based on `force`:
         // - undefined: no forcing => allow 0..reasonableMax
         // - 0: force none => only 0
-        // - >0: force at least 1 up to `force` (but not exceeding reasonableMax)
+        // - >0: prefer up to `force`, but allow 0 if budget doesn't permit
         let lower = 0;
         let upper = reasonableMax;
         if (typeof t.force === 'number') {
@@ -546,7 +546,8 @@
             lower = 0;
             upper = 0;
           } else if (t.force > 0) {
-            lower = 1;
+            // allow 0..min(reasonableMax, t.force) so forced items are used only when budget allows
+            lower = 0;
             upper = Math.min(reasonableMax, t.force);
           }
         }
@@ -584,6 +585,62 @@
         .join('<br>');
     }
 
+    // Apply Mark's Special allocation but only over the subset of symbols that have force>0.
+    // Returns { allocation: {symbol: qty}, remaining }
+    function applyMarkSpecialForForced(symbolsArr, budget) {
+      let remaining = budget;
+      const allocation = {};
+
+      // Only consider symbols with force > 0
+      const usableSymbols = symbolsArr.filter(s => typeof s.force === 'number' && s.force > 0);
+      if (usableSymbols.length === 0) return { allocation, remaining };
+
+      // Apply forced amounts first (up to their `force` cap and budget)
+      usableSymbols.forEach(sym => {
+        const maxByBudget = Math.floor(remaining / sym.cost);
+        const forcedCount = Math.min(sym.force, maxByBudget);
+        if (forcedCount > 0) {
+          allocation[sym.name] = (allocation[sym.name] || 0) + forcedCount;
+          remaining -= forcedCount * sym.cost;
+        }
+      });
+
+      // Helper to try adding one of a symbol respecting its `force` cap
+      const tryAdd = (sym) => {
+        const currentQty = allocation[sym.name] || 0;
+        const limit = (typeof sym.force === 'number' && sym.force >= 0) ? sym.force : Infinity;
+        if (currentQty >= limit) return false;
+        if (remaining >= sym.cost) {
+          allocation[sym.name] = currentQty + 1;
+          remaining -= sym.cost;
+          return true;
+        }
+        return false;
+      };
+
+      // Step 1: 1 of each (descending by cost)
+      const descending = [...usableSymbols].sort((a, b) => b.cost - a.cost);
+      for (let sym of descending) {
+        tryAdd(sym);
+      }
+
+      // Step 2+: Keep doing ascending passes until we can't add anything
+      while (true) {
+        const ascending = [...usableSymbols].sort((a, b) => a.cost - b.cost);
+        let addedAnything = false;
+
+        for (let sym of ascending) {
+          if (tryAdd(sym)) {
+            addedAnything = true;
+          }
+        }
+
+        if (!addedAnything) break; // can't add even the cheapest anymore
+      }
+
+      return { allocation, remaining };
+    }
+
     // ====================== MAIN CALCULATION ======================
     function calculateAllocations(optimizeForBalance = false) {
       const accounts = getAccounts();
@@ -609,7 +666,103 @@
       }
 
       accounts.forEach((acct) => {
-        let combos = findTopCombinations(symbols, acct.budget, 50);   // generate more candidates
+        // If more than one symbol has a positive `force`, pre-apply Mark's Special
+        // among those forced symbols, then run the requested algorithm on the remaining budget.
+        const forcedCount = Object.values(symbols).filter(s => typeof s.force === 'number' && s.force > 0).length;
+        let preAllocation = null;
+        let symbolsForSearch = JSON.parse(JSON.stringify(symbols));
+        let searchBudget = acct.budget;
+        if (forcedCount > 1) {
+          const symbolsArr = Object.entries(symbols).map(([name, d]) => ({ name, cost: Number(d.cost), force: (typeof d.force === 'number' ? d.force : undefined) }));
+          const pre = applyMarkSpecialForForced(symbolsArr, acct.budget);
+          preAllocation = pre.allocation;
+          searchBudget = pre.remaining;
+
+          // Reduce the remaining `force` caps by what we've already applied.
+          Object.keys(symbolsForSearch).forEach(name => {
+            if (typeof symbolsForSearch[name].force === 'number') {
+              const used = preAllocation[name] || 0;
+              symbolsForSearch[name].force = Math.max(0, symbolsForSearch[name].force - used);
+            }
+          });
+        }
+
+        let combos = findTopCombinations(symbolsForSearch, searchBudget, 50);   // generate more candidates
+
+        // If there was a pre-allocation, merge it into each combo and recompute metrics
+        if (preAllocation) {
+          const preCost = Object.entries(preAllocation).reduce((sum, [sym, qty]) => sum + qty * (symbols[sym] ? symbols[sym].cost : 0), 0);
+          const mergedResults = [];
+
+          const toMerge = combos.length > 0 ? combos : [{ combo: {}, total: '0.0', remainder: searchBudget.toFixed(1), symbolCount: 0, balancedCount: 0, avgDeviation: '999' }];
+
+          toMerge.forEach((combo) => {
+            const mergedCombo = {};
+            // union keys
+            const keys = new Set([...Object.keys(preAllocation), ...Object.keys(combo.combo || {})]);
+            keys.forEach(k => {
+              const a = preAllocation[k] || 0;
+              const b = (combo.combo && combo.combo[k]) ? combo.combo[k] : 0;
+              const sum = a + b;
+              if (sum > 0) mergedCombo[k] = sum;
+            });
+
+            const comboCost = parseFloat(combo.total || '0');
+            const mergedTotal = preCost + comboCost;
+            const remainder = acct.budget - mergedTotal;
+
+            // Recompute balance metrics for merged combo
+            const usedSymbols = Object.values(mergedCombo).filter(q => q > 0).length;
+            let avgDeviation = 999;
+            let balanceScore = 0;
+            if (usedSymbols > 0) {
+              const targetPercent = 100 / usedSymbols;
+              let totalDeviation = 0;
+              Object.entries(mergedCombo).forEach(([name, qty]) => {
+                if (qty > 0) {
+                  const percent = (qty * symbols[name].cost / acct.budget) * 100;
+                  totalDeviation += Math.abs(percent - targetPercent);
+                }
+              });
+              avgDeviation = totalDeviation / usedSymbols;
+              balanceScore = 100 - (avgDeviation * 4.0);
+              if (usedSymbols === 1 && Object.keys(symbols).length > 1) balanceScore *= 0.45;
+            }
+
+            mergedResults.push({
+              combo: mergedCombo,
+              total: mergedTotal.toFixed(1),
+              remainder: remainder.toFixed(1),
+              symbolCount: usedSymbols,
+              balancedCount: Math.max(0, balanceScore),
+              isSingleSymbol: (usedSymbols === 1),
+              avgDeviation: avgDeviation.toFixed(1)
+            });
+          });
+
+          // Resort merged results similar to the original sorting rules
+          if (optimizeForBalance) {
+            mergedResults.sort((a, b) => {
+              const devA = parseFloat(a.avgDeviation || 999);
+              const devB = parseFloat(b.avgDeviation || 999);
+              if (Math.abs(devA - devB) > 0.1) return devA - devB;
+              const remA = Math.abs(parseFloat(a.remainder));
+              const remB = Math.abs(parseFloat(b.remainder));
+              if (Math.abs(remA - remB) > 0.1) return remA - remB;
+              return b.symbolCount - a.symbolCount;
+            });
+          } else {
+            mergedResults.sort((a, b) => {
+              const remA = Math.abs(parseFloat(a.remainder));
+              const remB = Math.abs(parseFloat(b.remainder));
+              if (Math.abs(remA - remB) > 0.1) return remA - remB;
+              if (a.balancedCount !== b.balancedCount) return b.balancedCount - a.balancedCount;
+              return b.symbolCount - a.symbolCount;
+            });
+          }
+
+          combos = mergedResults;
+        }
 
         if (optimizeForBalance) {
           // STRONGER balanced sorting
