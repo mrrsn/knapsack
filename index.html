@@ -643,7 +643,8 @@
         let preAllocation = null;
         let symbolsForSearch = JSON.parse(JSON.stringify(symbols));
         let searchBudget = acct.budget;
-        if (forcedCount > 1) {
+        // If any symbols have a positive `force`, pre-apply Super Mark's Special among them.
+        if (forcedCount >= 1) {
           const symbolsArr = Object.entries(symbols).map(([name, d]) => ({ name, cost: Number(d.cost), force: (typeof d.force === 'number' ? d.force : undefined) }));
           const pre = applyMarkSpecialForForced(symbolsArr, acct.budget);
           preAllocation = pre.allocation;
