@@ -591,51 +591,22 @@
       let remaining = budget;
       const allocation = {};
 
-      // Only consider symbols with force > 0
-      const usableSymbols = symbolsArr.filter(s => typeof s.force === 'number' && s.force > 0);
+      // Super Mark's Special: allocate forced symbols largest-first fully (up to their `force` caps)
+      const usableSymbols = symbolsArr
+        .filter(s => typeof s.force === 'number' && s.force > 0)
+        .sort((a, b) => b.cost - a.cost);
+
       if (usableSymbols.length === 0) return { allocation, remaining };
 
-      // Apply forced amounts first (up to their `force` cap and budget)
-      usableSymbols.forEach(sym => {
+      for (let sym of usableSymbols) {
         const maxByBudget = Math.floor(remaining / sym.cost);
         const forcedCount = Math.min(sym.force, maxByBudget);
         if (forcedCount > 0) {
           allocation[sym.name] = (allocation[sym.name] || 0) + forcedCount;
           remaining -= forcedCount * sym.cost;
         }
-      });
-
-      // Helper to try adding one of a symbol respecting its `force` cap
-      const tryAdd = (sym) => {
-        const currentQty = allocation[sym.name] || 0;
-        const limit = (typeof sym.force === 'number' && sym.force >= 0) ? sym.force : Infinity;
-        if (currentQty >= limit) return false;
-        if (remaining >= sym.cost) {
-          allocation[sym.name] = currentQty + 1;
-          remaining -= sym.cost;
-          return true;
-        }
-        return false;
-      };
-
-      // Step 1: 1 of each (descending by cost)
-      const descending = [...usableSymbols].sort((a, b) => b.cost - a.cost);
-      for (let sym of descending) {
-        tryAdd(sym);
-      }
-
-      // Step 2+: Keep doing ascending passes until we can't add anything
-      while (true) {
-        const ascending = [...usableSymbols].sort((a, b) => a.cost - b.cost);
-        let addedAnything = false;
-
-        for (let sym of ascending) {
-          if (tryAdd(sym)) {
-            addedAnything = true;
-          }
-        }
-
-        if (!addedAnything) break; // can't add even the cheapest anymore
+        // move to next forced symbol only after exhausting this one's allowed amount
+        if (remaining <= 0) break;
       }
 
       return { allocation, remaining };
