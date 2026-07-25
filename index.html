@@ -107,11 +107,6 @@
 
   h1 { 
     text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 15px;
-    flex-wrap: wrap;
   }
 
   table {
@@ -250,6 +245,9 @@
 
   /* Dark mode toggle button */
   .theme-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
     background: var(--button-bg);
     color: white;
     border: none;
@@ -258,10 +256,21 @@
     cursor: pointer;
     font-size: 14px;
     transition: background-color 0.3s;
+    z-index: 1000;
+    box-shadow: 0 2px 8px var(--shadow);
   }
 
   .theme-toggle:hover {
     background: var(--button-hover);
+  }
+
+  @media (max-width: 480px) {
+    .theme-toggle {
+      top: 10px;
+      right: 10px;
+      padding: 6px 12px;
+      font-size: 12px;
+    }
   }
 
   /* Desktop column widths */
@@ -382,10 +391,8 @@
 </style>
 </head>
 <body>
-  <h1>
-    Knapsack Solver
-    <button class="theme-toggle" id="themeToggle" onclick="toggleDarkMode()">🌙 Dark Mode</button>
-  </h1>
+  <button class="theme-toggle" id="themeToggle" onclick="toggleDarkMode()">🌙 Dark</button>
+  <h1>Knapsack Solver</h1>
 
   <table id="accountsTable">
     <thead>
@@ -474,7 +481,7 @@
     function updateThemeButton(theme) {
       const button = document.getElementById('themeToggle');
       if (button) {
-        button.textContent = theme === 'dark' ? '☀️ Light Mode' : '🌙 Dark Mode';
+        button.textContent = theme === 'dark' ? '☀️ Light' : '🌙 Dark';
       }
     }
 
