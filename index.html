@@ -434,12 +434,16 @@
   <script>
     // ====================== DARK MODE ======================
     function initTheme() {
-      const savedTheme = localStorage.getItem('theme') || 'system';
+      let savedTheme = localStorage.getItem('theme');
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
       
-      let theme = savedTheme;
-      if (savedTheme === 'system') {
+      let theme;
+      if (!savedTheme) {
+        // First load - determine from system preference and save it
         theme = prefersDark ? 'dark' : 'light';
+        localStorage.setItem('theme', theme);
+      } else {
+        theme = savedTheme;
       }
       
       applyTheme(theme);
@@ -447,17 +451,20 @@
 
     function applyTheme(theme) {
       const html = document.documentElement;
-      if (theme === 'dark') {
-        html.setAttribute('data-theme', 'dark');
-      } else {
-        html.setAttribute('data-theme', 'light');
-      }
-      updateThemeButton(theme);
+      const finalTheme = theme === 'dark' ? 'dark' : 'light';
+      html.setAttribute('data-theme', finalTheme);
+      updateThemeButton(finalTheme);
     }
 
     function toggleDarkMode() {
       const html = document.documentElement;
-      const currentTheme = html.getAttribute('data-theme') || 'light';
+      let currentTheme = html.getAttribute('data-theme');
+      
+      // Fallback in case attribute is not set
+      if (!currentTheme) {
+        currentTheme = localStorage.getItem('theme') || 'light';
+      }
+      
       const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
       
       localStorage.setItem('theme', newTheme);
