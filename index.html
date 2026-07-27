@@ -190,18 +190,20 @@
   }
   button:hover { background: var(--button-hover); }
 
+  .sort-controls {
+    margin-left: 8px;
+    display: inline-flex;
+    gap: 0;
+    align-items: center;
+  }
   .sort-button {
     border: none;
     background: transparent;
     color: inherit;
     cursor: pointer;
     font-size: 0.9em;
-    margin-left: 2px;
-    padding: 2px 3px;
+    padding: 2px 4px;
     line-height: 1;
-  }
-  .sort-button:first-child {
-    margin-left: 0;
   }
   .sort-button:hover {
     color: var(--button-hover);
@@ -428,14 +430,10 @@
     <thead>
       <tr>
         <th class="symbolname-col">
-          Symbol
-          <button class="sort-button" onclick="sortSymbols('symbol', 'asc')">▲</button>
-          <button class="sort-button" onclick="sortSymbols('symbol', 'desc')">▼</button>
+          Symbol<span class="sort-controls"><button class="sort-button" onclick="sortSymbols('symbol', 'asc')">▲</button><button class="sort-button" onclick="sortSymbols('symbol', 'desc')">▼</button></span>
         </th>
         <th class="cost-col">
-          Cost
-          <button class="sort-button" onclick="sortSymbols('cost', 'asc')">▲</button>
-          <button class="sort-button" onclick="sortSymbols('cost', 'desc')">▼</button>
+          Cost<span class="sort-controls"><button class="sort-button" onclick="sortSymbols('cost', 'asc')">▲</button><button class="sort-button" onclick="sortSymbols('cost', 'desc')">▼</button></span>
         </th>
         <th class="remove-col"></th>
       </tr>
@@ -693,7 +691,7 @@
       const row = document.createElement('tr');
       row.innerHTML = `
         <td><input type="text" value="${symbol}" placeholder="SYMBOL" oninput="this.value = this.value.toUpperCase(); saveSymbols()"></td>
-        <td class="cost-cell"><input type="number" value="${cost}" step="0.01" min="0" placeholder="Cost" onblur="saveSymbols()"></td>
+        <td class="cost-cell"><input type="number" value="${cost}" step="0.01" min="0" placeholder="Cost" oninput="saveSymbols()"></td>
         
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
