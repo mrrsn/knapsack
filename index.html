@@ -190,6 +190,20 @@
   }
   button:hover { background: var(--button-hover); }
 
+  .sort-button {
+    border: none;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    font-size: 0.9em;
+    margin-left: 6px;
+    padding: 2px 4px;
+    line-height: 1;
+  }
+  .sort-button:hover {
+    color: var(--button-hover);
+  }
+
   .add-row {
     background: var(--success-bg);
     margin: 0 0 30px 0;
@@ -410,8 +424,16 @@
   <table id="symbolsTable">
     <thead>
       <tr>
-        <th class="symbolname-col">Symbol</th>
-        <th class="cost-col">Cost</th>
+        <th class="symbolname-col">
+          Symbol
+          <button class="sort-button" onclick="sortSymbols('symbol', 'asc')">▲</button>
+          <button class="sort-button" onclick="sortSymbols('symbol', 'desc')">▼</button>
+        </th>
+        <th class="cost-col">
+          Cost
+          <button class="sort-button" onclick="sortSymbols('cost', 'asc')">▲</button>
+          <button class="sort-button" onclick="sortSymbols('cost', 'desc')">▼</button>
+        </th>
         <th class="remove-col"></th>
       </tr>
     </thead>
@@ -636,6 +658,31 @@
         nameInput.focus();
         nameInput.setSelectionRange(nameInput.value.length, nameInput.value.length);
       }
+    }
+
+    function sortSymbols(column, direction) {
+      const tbody = document.getElementById('symbolsBody');
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      rows.sort((a, b) => {
+        if (column === 'symbol') {
+          const valueA = a.querySelector('input[type="text"]').value.trim().toUpperCase();
+          const valueB = b.querySelector('input[type="text"]').value.trim().toUpperCase();
+          if (valueA === valueB) return 0;
+          return direction === 'asc'
+            ? valueA.localeCompare(valueB)
+            : valueB.localeCompare(valueA);
+        }
+
+        const costA = parseFloat(a.querySelector('input[type="number"]').value);
+        const costB = parseFloat(b.querySelector('input[type="number"]').value);
+        const aEmpty = isNaN(costA);
+        const bEmpty = isNaN(costB);
+        if (aEmpty && bEmpty) return 0;
+        if (aEmpty) return 1;
+        if (bEmpty) return -1;
+        return direction === 'asc' ? costA - costB : costB - costA;
+      });
+      rows.forEach((row) => tbody.appendChild(row));
     }
 
     function addSymbolRow(symbol = '', cost = '') {
