@@ -615,16 +615,27 @@
     }
 
     // ====================== ROW ADDING ======================
-    function addAccountRow(name = '', budget = '', color = '#0066cc') {
+    const accountColors = ['#4a90e2', '#50c878', '#f39c12', '#e74c3c', '#9b59b6', '#1abc9c', '#d35400', '#2c3e50', '#16a085', '#2980b9'];
+    function getRandomAccountColor() {
+      return accountColors[Math.floor(Math.random() * accountColors.length)];
+    }
+
+    function addAccountRow(name = '', budget = '', color = '') {
       const tbody = document.getElementById('accountsBody');
       const row = document.createElement('tr');
+      const chosenColor = color || getRandomAccountColor();
       row.innerHTML = `
         <td><input type="text" value="${name}" placeholder="Account name" onblur="saveAccounts()"></td>
         <td class="budget-cell"><input type="number" value="${budget}" step="0.01" min="0" placeholder="Budget" onblur="saveAccounts()"></td>
-        <td><input type="color" value="${color}" oninput="saveAccounts()"></td>
+        <td><input type="color" value="${chosenColor}" oninput="saveAccounts()"></td>
         <td><button onclick="this.parentElement.parentElement.remove(); saveAccounts()">x</button></td>
       `;
       tbody.appendChild(row);
+      const nameInput = row.querySelector('input[type="text"]');
+      if (nameInput) {
+        nameInput.focus();
+        nameInput.setSelectionRange(nameInput.value.length, nameInput.value.length);
+      }
     }
 
     function addSymbolRow(symbol = '', cost = '') {
@@ -637,6 +648,11 @@
         <td><button onclick="this.parentElement.parentElement.remove(); saveSymbols()">x</button></td>
       `;
       tbody.appendChild(row);
+      const symbolInput = row.querySelector('input[type="text"]');
+      if (symbolInput) {
+        symbolInput.focus();
+        symbolInput.setSelectionRange(symbolInput.value.length, symbolInput.value.length);
+      }
     }
 
     // ====================== DATA RETRIEVAL ======================
