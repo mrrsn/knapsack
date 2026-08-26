@@ -1037,6 +1037,12 @@
 
     // ====================== INITIALIZATION ======================
     window.onload = async () => {
+      document.addEventListener('wheel', event => {
+        if (event.target.matches('input[type="number"]')) {
+          event.target.blur();
+        }
+      });
+
       // Initialize theme first
       initTheme();
 
